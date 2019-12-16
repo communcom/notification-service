@@ -2,7 +2,7 @@ const core = require('cyberway-core-service');
 const { MongoDB } = core.services;
 
 module.exports = MongoDB.makeModel(
-    'User',
+    'Community',
     {
         communityId: {
             type: String,

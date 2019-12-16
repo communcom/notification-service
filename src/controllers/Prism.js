@@ -361,29 +361,21 @@ class Prism {
         const updates = {};
 
         for (const { _id, revertLog } of items) {
-            let stopOn = null;
-
             for (let i = revertLog.length - 1; i >= 0; i--) {
                 const change = revertLog[i];
 
                 if (change.blockNum < blockNum) {
-                    stopOn = i;
                     break;
                 }
 
                 Object.assign(updates, change.data);
             }
 
-            if (stopOn === null) {
-                updates.revertLog = [];
-            } else {
-                updates.revertLog = revertLog.slice(0, stopOn + 1);
-            }
-
             await Model.updateOne(
                 { _id },
                 {
                     $set: updates,
+                    $pull: { revertLog: { blockNum: { $gte: blockNum } } },
                 }
             );
         }

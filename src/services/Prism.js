@@ -5,6 +5,7 @@ const MetaModel = require('../models/Meta');
 
 const env = require('../data/env');
 const PrismController = require('../controllers/Prism');
+const ForkCleaner = require('../controllers/ForkCleaner');
 
 class Prism extends BasicService {
     async start() {
@@ -15,6 +16,7 @@ class Prism extends BasicService {
         }
 
         this._prismController = new PrismController();
+        this._forkCleaner = new ForkCleaner();
 
         this._subscriber = new BlockSubscribe({
             handler: this._handleEvent.bind(this),
@@ -78,7 +80,7 @@ class Prism extends BasicService {
     }
 
     async _handleIrreversibleBlock(block) {
-        // TODO:
+        await this._forkCleaner.clearRevertData(block.blockNum);
     }
 
     async _handleFork(baseBlockNum) {
