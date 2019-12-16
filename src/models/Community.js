@@ -4,11 +4,15 @@ const { MongoDB } = core.services;
 module.exports = MongoDB.makeModel(
     'User',
     {
-        userId: {
+        communityId: {
             type: String,
             required: true,
         },
-        username: {
+        name: {
+            type: String,
+            required: true,
+        },
+        alias: {
             type: String,
             required: true,
         },
@@ -40,12 +44,7 @@ module.exports = MongoDB.makeModel(
         index: [
             {
                 fields: {
-                    userId: 1,
-                },
-            },
-            {
-                fields: {
-                    username: 1,
+                    communityId: 1,
                 },
             },
             {

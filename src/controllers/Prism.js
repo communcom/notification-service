@@ -3,7 +3,15 @@ const { Logger } = core.utils;
 
 const EventModel = require('../models/Event');
 const UserModel = require('../models/User');
+const CommunityModel = require('../models/Community');
 const UserBlockModel = require('../models/UserBlock');
+const { extractAlias } = require('../utils/community');
+
+class NoUserError extends Error {
+    constructor() {
+        super('User is not found');
+    }
+}
 
 class Prism {
     async processBlock(block) {
@@ -19,7 +27,13 @@ class Prism {
                     try {
                         await this._processAction(blockInfo, action);
                     } catch (err) {
-                        Logger.error('Actions processing failed (skip):', blockInfo, action, err);
+                        if (err instanceof NoUserError) {
+                            continue;
+                        }
+
+                        Logger.error('Critical error!');
+                        Logger.error('Action processing failed:', blockInfo, action, err);
+                        process.exit(1);
                     }
                 }
             }
@@ -28,12 +42,12 @@ class Prism {
 
     async revertTo(blockNum) {
         Logger.info(`Reverting to block num: ${blockNum}.`);
-        await this._removeAbove(blockNum);
+        await this._revertTo(blockNum);
     }
 
     async processFork(baseBlockNum) {
         Logger.info(`Fork processing. Revert to block num: ${baseBlockNum}.`);
-        await this._removeAbove(baseBlockNum);
+        await this._revertTo(baseBlockNum);
     }
 
     async _processAction(blockInfo, { code, action, args }) {
@@ -44,6 +58,17 @@ class Prism {
                         await this._processNewUser(blockInfo, args);
                         break;
                     default:
+                }
+                break;
+
+            case 'c.list':
+                switch (action) {
+                    case 'create':
+                        await this._processNewCommunity(blockInfo, args);
+                        break;
+                    case 'setinfo':
+                        await this._processCommunityInfo(blockInfo, args);
+                        break;
                 }
                 break;
 
@@ -61,6 +86,9 @@ class Prism {
 
             case 'c.social':
                 switch (action) {
+                    case 'updatemeta':
+                        await this._updateMeta(blockInfo, args);
+                        break;
                     case 'block':
                         await this._processUserBlock(blockInfo, args);
                         break;
@@ -80,18 +108,65 @@ class Prism {
             return;
         }
 
-        try {
-            await UserModel.create({
-                userId,
-                username,
-                blockNum,
-            });
-        } catch (err) {
-            // If error is not duplication
-            if (err.code !== 11000) {
-                throw err;
-            }
+        await UserModel.create({
+            userId,
+            username,
+            blockNum,
+        });
+    }
+
+    async _processNewCommunity({ blockNum }, { community_name: name, commun_code: communityId }) {
+        await CommunityModel.create({
+            communityId,
+            name,
+            alias: extractAlias(name),
+            blockNum,
+        });
+    }
+
+    async _processCommunityInfo(
+        { blockNum },
+        { commun_code: communityId, avatar_image: avatarUrl }
+    ) {
+        if (!avatarUrl) {
+            return;
         }
+
+        const community = await CommunityModel.findOne(
+            {
+                communityId,
+            },
+            {
+                _id: true,
+                avatarUrl: true,
+            },
+            {
+                lean: true,
+            }
+        );
+
+        if (!community) {
+            return;
+        }
+
+        await CommunityModel.updateOne(
+            {
+                _id: community._id,
+            },
+            {
+                $set: {
+                    avatarUrl,
+                },
+                $addToSet: {
+                    revertLog: {
+                        blockNum,
+                        data: {
+                            avatarUrl: community.avatarUrl,
+                        },
+                    },
+                },
+            }
+        );
     }
 
     async _processNewPublication(
@@ -99,6 +174,9 @@ class Prism {
         { commun_code: communityId, message_id, parent_id, body }
     ) {
         const messageId = normalizeMessageId(message_id);
+
+        await this._checkUser(messageId.userId);
+
         const contentType = Boolean(parent_id.author) ? 'comment' : 'post';
 
         const mentions = new Set();
@@ -124,7 +202,7 @@ class Prism {
         for (const username of mentions) {
             const mentionedUser = await UserModel.findOne(
                 { username },
-                { userId: true },
+                { _id: false, userId: true },
                 { lean: true }
             );
 
@@ -148,9 +226,11 @@ class Prism {
     async _processUpvote({ blockNum }, { commun_code: communityId, message_id, voter }) {
         const messageId = normalizeMessageId(message_id);
 
+        await this._checkUser(messageId.userId);
+
         await EventModel.create({
             eventType: 'upvote',
-            userId: messageId.author,
+            userId: messageId.userId,
             initiatorUserId: voter,
             blockNum,
             timestamp: new Date(),
@@ -162,6 +242,9 @@ class Prism {
     }
 
     async _processSubscription({ blockNum }, { pinner, pinning }) {
+        await this._checkUser(pinner);
+        await this._checkUser(pinning);
+
         await EventModel.create({
             eventType: 'subscribe',
             userId: pinning,
@@ -195,7 +278,52 @@ class Prism {
         });
     }
 
-    async _removeAbove(blockNum) {
+    async _updateMeta({ blockNum }, { account, meta }) {
+        const avatarUrl = meta.avatar_url;
+
+        if (!avatarUrl) {
+            return;
+        }
+
+        const user = await UserModel.findOne(
+            { userId: account },
+            { _id: true, avatarUrl: true },
+            { lean: true }
+        );
+
+        if (!user) {
+            return;
+        }
+
+        await UserModel.updateOne(
+            {
+                _id: user._id,
+            },
+            {
+                $set: {
+                    avatarUrl,
+                },
+                $addToSet: {
+                    revertLog: {
+                        blockNum,
+                        data: {
+                            avatarUrl: user.avatarUrl,
+                        },
+                    },
+                },
+            }
+        );
+    }
+
+    async _checkUser(userId) {
+        const user = await UserModel.findOne({ userId }, { _id: true }, { lean: true });
+
+        if (!user) {
+            throw new NoUserError();
+        }
+    }
+
+    async _revertTo(blockNum) {
         const removeCondition = {
             blockNum: {
                 $gt: blockNum,
@@ -204,8 +332,61 @@ class Prism {
 
         await Promise.all([
             UserModel.deleteMany(removeCondition),
+            CommunityModel.deleteMany(removeCondition),
             EventModel.deleteMany(removeCondition),
         ]);
+
+        await Promise.all([
+            this._revertChanges(UserModel, blockNum),
+            this._revertChanges(CommunityModel, blockNum),
+        ]);
+    }
+
+    async _revertChanges(Model, blockNum) {
+        const items = await Model.find(
+            {
+                'revertLog.blockNum': {
+                    $gte: blockNum,
+                },
+            },
+            {
+                _id: true,
+                revertLog: true,
+            },
+            {
+                lean: true,
+            }
+        );
+
+        const updates = {};
+
+        for (const { _id, revertLog } of items) {
+            let stopOn = null;
+
+            for (let i = revertLog.length - 1; i >= 0; i--) {
+                const change = revertLog[i];
+
+                if (change.blockNum < blockNum) {
+                    stopOn = i;
+                    break;
+                }
+
+                Object.assign(updates, change.data);
+            }
+
+            if (stopOn === null) {
+                updates.revertLog = [];
+            } else {
+                updates.revertLog = revertLog.slice(0, stopOn + 1);
+            }
+
+            await Model.updateOne(
+                { _id },
+                {
+                    $set: updates,
+                }
+            );
+        }
     }
 }
 
