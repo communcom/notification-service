@@ -11,18 +11,19 @@ function formatContentId(contentId) {
 
 function extractPublicationInfo({ contentId, document }) {
     const id = formatContentId(contentId);
-    const mentions = new Set();
-    let text = null;
-    let imageUrl = null;
 
     if (!document) {
         return {
             id,
-            text,
-            imageUrl,
+            shortText: null,
+            imageUrl: null,
             mentions: [],
         };
     }
+
+    const mentions = new Set();
+    let text = null;
+    let imageUrl = null;
 
     if (document.attributes.type === 'article') {
         text = document.attributes.title;

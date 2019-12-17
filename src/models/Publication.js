@@ -1,20 +1,7 @@
 const core = require('cyberway-core-service');
 const { MongoDB } = core.services;
 
-const contentId = {
-    communityId: {
-        type: String,
-        required: true,
-    },
-    userId: {
-        type: String,
-        required: true,
-    },
-    permlink: {
-        type: String,
-        required: true,
-    },
-};
+const { contentId, revertLog, revertLogIndexes } = require('./common');
 
 module.exports = MongoDB.makeModel(
     'Publication',
@@ -43,6 +30,11 @@ module.exports = MongoDB.makeModel(
                 required: true,
             },
         ],
+        blockNum: {
+            type: Number,
+            required: true,
+        },
+        revertLog,
     },
     {
         index: [
@@ -54,6 +46,7 @@ module.exports = MongoDB.makeModel(
                     unique: true,
                 },
             },
+            ...revertLogIndexes,
         ],
     }
 );

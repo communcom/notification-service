@@ -233,13 +233,22 @@ class Prism {
         const info = extractPublicationInfo(entity);
         const mentioned = await this._processMentions(author, info);
 
-        await PublicationModel.create({
-            ...info,
-            type: comment ? 'comment' : 'post',
-            contentId: entity.contentId,
-            parents: comment ? comment.parents : null,
-            mentioned,
-        });
+        try {
+            await PublicationModel.create({
+                ...info,
+                type: comment ? 'comment' : 'post',
+                contentId: entity.contentId,
+                parents: comment ? comment.parents : null,
+                mentioned,
+                blockNum,
+            });
+        } catch (err) {
+            if (err.code === 11000) {
+                Logger.warn(`Duplication publication at block num: ${blockNum}:`, entity.contentId);
+            } else {
+                throw err;
+            }
+        }
     }
 
     async _processPublicationUpdate(
@@ -273,8 +282,21 @@ class Prism {
             },
             {
                 $set: {
-                    ...info,
+                    shortText: info.shortText,
+                    imageUrl: info.imageUrl,
+                    mentions: info.mentions,
                     mentioned,
+                },
+                $addToSet: {
+                    revertLog: {
+                        blockNum,
+                        data: {
+                            shortText: publication.shortText,
+                            imageUrl: publication.imageUrl,
+                            mentions: publication.mentions,
+                            mentioned: publication.mentioned,
+                        },
+                    },
                 },
             }
         );
@@ -461,6 +483,9 @@ class Prism {
                 _id: true,
                 id: true,
                 type: isExtended || undefined,
+                shortText: isExtended || undefined,
+                imageUrl: isExtended || undefined,
+                mentions: isExtended || undefined,
                 mentioned: isExtended || undefined,
             },
             {
@@ -488,11 +513,13 @@ class Prism {
             EventModel.deleteMany(removeCondition),
             UserBlockModel.deleteMany(removeCondition),
             CommunityBlockModel.deleteMany(removeCondition),
+            PublicationModel.deleteMany(removeCondition),
         ]);
 
         await Promise.all([
             this._revertChanges(UserModel, blockNum),
             this._revertChanges(CommunityModel, blockNum),
+            this._revertChanges(PublicationModel, blockNum),
         ]);
     }
 
