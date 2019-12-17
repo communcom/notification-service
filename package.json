@@ -6,8 +6,11 @@
   "scripts": {
     "start": "node src/index.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "service",
+    "notifications"
+  ],
+  "author": "Commun",
   "license": "ISC",
   "dependencies": {
     "cyberway-core-service": "^3.55.4-1"
