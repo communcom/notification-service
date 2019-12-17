@@ -7,7 +7,7 @@ const CommunityModel = require('../models/Community');
 const UserBlockModel = require('../models/UserBlock');
 const CommunityBlockModel = require('../models/CommunityBlock');
 const PublicationModel = require('../models/Publication');
-const { extractAlias } = require('../utils/community');
+const { extractAlias, normalizeCommunityName } = require('../utils/community');
 const { getConnector } = require('../utils/processStore');
 const { formatContentId, extractPublicationInfo } = require('../utils/publication');
 
@@ -149,7 +149,7 @@ class Prism {
     async _processNewCommunity({ blockNum }, { community_name: name, commun_code: communityId }) {
         await CommunityModel.create({
             communityId,
-            name,
+            name: normalizeCommunityName(name),
             alias: extractAlias(name),
             blockNum,
         });

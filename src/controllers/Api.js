@@ -155,7 +155,8 @@ class Api {
                 data.entryType = event.entry.type;
 
                 const entry = {
-                    contentId: event.entry.contentId || null,
+                    contentId: event.entry.contentId,
+                    shortText: event.entry.shortText || null,
                     imageUrl: event.entry.imageUrl || null,
                 };
 

@@ -21,6 +21,18 @@ function extractAlias(communityName) {
     return permlink;
 }
 
+function normalizeCommunityName(name) {
+    switch (name) {
+        case "Meme's":
+            return 'Memes';
+        case "Coub's":
+            return 'Coub';
+        default:
+            return name;
+    }
+}
+
 module.exports = {
     extractAlias,
+    normalizeCommunityName,
 };
