@@ -1,0 +1,39 @@
+version: '2.1'
+services:
+  notify-node:
+    container_name: notify-node
+    restart: always
+    depends_on:
+      - notify-mongo
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      - services-tier
+    ports:
+      - $GLS_CONNECTOR_HOST:$GLS_CONNECTOR_PORT:$GLS_CONNECTOR_PORT
+      - $GLS_METRICS_HOST:$GLS_METRICS_PORT:$GLS_METRICS_PORT
+    env_file:
+      - .env
+
+  notify-mongo:
+    container_name: registration-mongo
+    image: mongo
+    restart: always
+    healthcheck:
+      test: mongo --eval 'db.getCollectionNames()'
+      interval: 10s
+      timeout: 2s
+      retries: 10
+    volumes:
+      - notify_mongodb_vol:/data/db
+    ports:
+      - $GLS_MONGO_EXTERNAL_HOST:$GLS_MONGO_EXTERNAL_PORT:27017
+    networks:
+      - services-tier
+
+networks:
+  services-tier:
+
+volumes:
+  notify_mongodb_vol:
