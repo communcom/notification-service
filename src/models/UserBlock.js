@@ -4,11 +4,11 @@ const { MongoDB } = core.services;
 module.exports = MongoDB.makeModel(
     'UserBlock',
     {
-        useId: {
+        userId: {
             type: String,
             required: true,
         },
-        blockUseId: {
+        blockUserId: {
             type: String,
             required: true,
         },
@@ -21,8 +21,8 @@ module.exports = MongoDB.makeModel(
         index: [
             {
                 fields: {
-                    useId: 1,
-                    blockUseId: 1,
+                    userId: 1,
+                    blockUserId: 1,
                 },
                 options: {
                     unique: true,

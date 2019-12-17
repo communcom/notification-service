@@ -18,6 +18,7 @@ module.exports = MongoDB.makeModel(
         },
         avatarUrl: {
             type: String,
+            default: null,
         },
         blockNum: {
             type: Number,

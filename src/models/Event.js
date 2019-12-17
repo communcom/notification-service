@@ -8,6 +8,10 @@ module.exports = MongoDB.makeModel(
             type: String,
             required: true,
         },
+        communityId: {
+            type: String,
+            default: null,
+        },
         userId: {
             type: String,
             required: true,
@@ -16,7 +20,7 @@ module.exports = MongoDB.makeModel(
             type: String,
             default: null,
         },
-        timestamp: {
+        blockTime: {
             type: Date,
             required: true,
         },
@@ -34,7 +38,7 @@ module.exports = MongoDB.makeModel(
             {
                 fields: {
                     userId: 1,
-                    timestamp: -1,
+                    blockTime: -1,
                 },
             },
             {
