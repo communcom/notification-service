@@ -52,7 +52,8 @@ class Prism {
                         }
 
                         Logger.error('Critical error!');
-                        Logger.error('Action processing failed:', blockInfo, action, err);
+                        Logger.error('Action processing failed:', blockInfo, action);
+                        Logger.error(err);
                         process.exit(1);
                     }
                 }
@@ -201,7 +202,7 @@ class Prism {
 
     async _processNewPublication(
         { blockNum, blockTime },
-        { commun_code: communityId, message_id, parent_id, body }
+        { commun_code: communityId, message_id, parent_id }
     ) {
         const messageId = normalizeMessageId(message_id, communityId);
 
@@ -215,7 +216,6 @@ class Prism {
         let post;
         let comment;
         let entity;
-        let entityType;
 
         if (parent_id.author) {
             comment = await con.callService('prismApi', 'getComment', messageId);
@@ -252,7 +252,6 @@ class Prism {
             this._checkUser(messageId.userId),
             this._checkPublication(messageId, true),
             this._checkCommunity(communityId),
-            parent_id.author ? this._checkUser(parent_id.author) : null,
         ]);
 
         const con = getConnector();
