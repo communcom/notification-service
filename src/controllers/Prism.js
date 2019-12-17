@@ -488,6 +488,8 @@ class Prism {
             UserModel.deleteMany(removeCondition),
             CommunityModel.deleteMany(removeCondition),
             EventModel.deleteMany(removeCondition),
+            UserBlockModel.deleteMany(removeCondition),
+            CommunityBlockModel.deleteMany(removeCondition),
         ]);
 
         await Promise.all([
