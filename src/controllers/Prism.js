@@ -328,9 +328,7 @@ class Prism {
             publicationId: formatContentId(messageId),
             blockNum,
             blockTime,
-            data: {
-                messageId,
-            },
+            data: {},
         });
     }
 

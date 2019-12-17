@@ -134,16 +134,13 @@ class Api {
 
                 case 'mention':
                     data = {
-                        entityType: event.data.entityType,
                         author: event.user,
-                        messageId: event.data.messageId,
                     };
                     break;
 
                 case 'upvote':
                     data = {
                         voter: event.user,
-                        messageId: event.data.messageId,
                     };
                     break;
 
@@ -151,12 +148,22 @@ class Api {
             }
 
             if (eventType === 'mention' || eventType === 'upvote') {
-                data.entryType = event.type;
-                data.contentId = event.entry.contentId;
-                data.imageUrl = event.entry.imageUrl;
+                if (!event.entry) {
+                    throw new Error('Entry not found');
+                }
+
+                data.entryType = event.entry.type;
+
+                const entry = {
+                    contentId: event.entry.contentId || null,
+                    imageUrl: event.entry.imageUrl || null,
+                };
 
                 if (event.entry.type === 'comment') {
-                    data.parents = event.entry.parents;
+                    entry.parents = event.entry.parents;
+                    data.comment = entry;
+                } else {
+                    data.post = entry;
                 }
             }
 
