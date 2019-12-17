@@ -5,17 +5,29 @@ const EventModel = require('../models/Event');
 const UserModel = require('../models/User');
 const CommunityModel = require('../models/Community');
 const UserBlockModel = require('../models/UserBlock');
+const CommunityBlockModel = require('../models/CommunityBlock');
+const PublicationModel = require('../models/Publication');
 const { extractAlias } = require('../utils/community');
+const { getConnector } = require('../utils/processStore');
+const { formatContentId, extractPublicationInfo } = require('../utils/publication');
 
-class NoUserError extends Error {
+class NoEntityError extends Error {}
+
+class NoUserError extends NoEntityError {
     constructor() {
         super('User is not found');
     }
 }
 
-class NoCommunityError extends Error {
+class NoCommunityError extends NoEntityError {
     constructor() {
         super('Community is not found');
+    }
+}
+
+class NoPublicationError extends NoEntityError {
+    constructor() {
+        super('Publication is not found');
     }
 }
 
@@ -35,7 +47,7 @@ class Prism {
                     try {
                         await this._processAction(blockInfo, action);
                     } catch (err) {
-                        if (err instanceof NoUserError || err instanceof NoCommunityError) {
+                        if (err instanceof NoEntityError) {
                             continue;
                         }
 
@@ -77,6 +89,13 @@ class Prism {
                     case 'setinfo':
                         await this._processCommunityInfo(blockInfo, args);
                         break;
+                    case 'hide':
+                        await this._processCommunityHide(blockInfo, args);
+                        break;
+                    case 'unhide':
+                        await this._processCommunityUnhide(blockInfo, args);
+                        break;
+                    default:
                 }
                 break;
 
@@ -84,6 +103,9 @@ class Prism {
                 switch (action) {
                     case 'create':
                         await this._processNewPublication(blockInfo, args);
+                        break;
+                    case 'update':
+                        await this._processPublicationUpdate(blockInfo, args);
                         break;
                     case 'upvote':
                         await this._processUpvote(blockInfo, args);
@@ -183,53 +205,90 @@ class Prism {
     ) {
         const messageId = normalizeMessageId(message_id, communityId);
 
-        await Promise.all([
-            this._checkCommunity(communityId),
+        const [author] = await Promise.all([
             this._checkUser(messageId.userId),
+            this._checkCommunity(communityId),
             parent_id.author ? this._checkUser(parent_id.author) : null,
         ]);
 
-        const entityType = Boolean(parent_id.author) ? 'comment' : 'post';
-        const mentions = new Set();
-        const ignoreMentions = [messageId.userId];
+        const con = getConnector();
+        let post;
+        let comment;
+        let entity;
+        let entityType;
 
-        if (entityType === 'comment') {
-            ignoreMentions.push(parent_id.author);
-
-            await EventModel.create({
-                eventType: 'reply',
-                communityId,
-                userId: parent_id.author,
-                initiatorUserId: messageId.userId,
-                blockNum,
-                blockTime,
-                data: {
-                    messageId: normalizeMessageId(parent_id, communityId),
-                    replyMessageId: messageId,
-                },
-            });
+        if (parent_id.author) {
+            comment = await con.callService('prismApi', 'getComment', messageId);
+            entity = comment;
+        } else {
+            post = await con.callService('prismApi', 'getPost', messageId);
+            entity = post;
         }
 
-        let doc;
-
-        try {
-            doc = JSON.parse(body);
-        } catch (err) {
-            Logger.warn('Invalid publication body:', messageId);
+        if (!entity) {
+            // Публикация была отброшена призмой.
             return;
         }
 
-        for (const node of doc.content) {
-            if (node.type === 'paragraph') {
-                for (const leaf of node.content) {
-                    if (leaf.type === 'mention' && !ignoreMentions.includes(leaf.content)) {
-                        mentions.add(leaf.content);
-                    }
-                }
-            }
+        const info = extractPublicationInfo(entity);
+        const mentioned = await this._processMentions(author, info);
+
+        await PublicationModel.create({
+            ...info,
+            type: comment ? 'comment' : 'post',
+            contentId: entity.contentId,
+            parents: comment ? comment.parents : null,
+            mentioned,
+        });
+    }
+
+    async _processPublicationUpdate(
+        { blockNum, blockTime },
+        { commun_code: communityId, message_id }
+    ) {
+        const messageId = normalizeMessageId(message_id, communityId);
+
+        const [author, publication] = await Promise.all([
+            this._checkUser(messageId.userId),
+            this._checkPublication(messageId, true),
+            this._checkCommunity(communityId),
+            parent_id.author ? this._checkUser(parent_id.author) : null,
+        ]);
+
+        const con = getConnector();
+        let post;
+        let comment;
+
+        if (publication.type === 'comment') {
+            comment = await con.callService('prismApi', 'getComment', messageId);
+        } else {
+            post = await con.callService('prismApi', 'getPost', messageId);
         }
 
-        for (const username of mentions) {
+        const info = extractPublicationInfo(post || comment);
+        const mentioned = await this._processMentions(author, info, publication.mentioned);
+
+        await PublicationModel.updateOne(
+            {
+                id: publication.id,
+            },
+            {
+                $set: {
+                    ...info,
+                    mentioned,
+                },
+            }
+        );
+    }
+
+    async _processMentions(author, info, alreadyMentioned) {
+        const mentioned = new Set(alreadyMentioned || []);
+
+        for (const username of info.mentions) {
+            if (username === author.username || mentioned.has(username)) {
+                continue;
+            }
+
             const mentionedUser = await UserModel.findOne(
                 { username },
                 { _id: false, userId: true },
@@ -240,17 +299,21 @@ class Prism {
                 await EventModel.create({
                     eventType: 'mention',
                     communityId,
+                    publicationId: info.id,
                     userId: mentionedUser.userId,
                     initiatorUserId: messageId.userId,
                     blockNum,
                     blockTime,
                     data: {
-                        contentType: entityType,
                         messageId,
                     },
                 });
+
+                mentioned.add(username);
             }
         }
+
+        return [...mentioned];
     }
 
     async _processUpvote({ blockNum, blockTime }, { commun_code: communityId, message_id, voter }) {
@@ -263,6 +326,7 @@ class Prism {
             communityId,
             userId: messageId.userId,
             initiatorUserId: voter,
+            publicationId: formatContentId(messageId),
             blockNum,
             blockTime,
             data: {
@@ -306,6 +370,28 @@ class Prism {
         });
     }
 
+    async _processCommunityHide({ blockNum }, { commun_code: communityId, follower: userId }) {
+        try {
+            await CommunityBlockModel.create({
+                userId,
+                blockCommunityId: communityId,
+                blockNum,
+            });
+        } catch (err) {
+            if (err.code !== 11000) {
+                throw err;
+            }
+        }
+    }
+
+    async _processCommunityUnhide({}, { commun_code: communityId, follower: userId }) {
+        // TODO: Rewrite on revertLog for fork handling
+        await UserBlockModel.deleteOne({
+            userId,
+            blockCommunityId: communityId,
+        });
+    }
+
     async _updateMeta({ blockNum }, { account, meta }) {
         const avatarUrl = meta.avatar_url;
 
@@ -344,11 +430,17 @@ class Prism {
     }
 
     async _checkUser(userId) {
-        const user = await UserModel.findOne({ userId }, { _id: true }, { lean: true });
+        const user = await UserModel.findOne(
+            { userId },
+            { _id: false, userId: true, username: true },
+            { lean: true }
+        );
 
         if (!user) {
             throw new NoUserError();
         }
+
+        return user;
     }
 
     async _checkCommunity(communityId) {
@@ -361,6 +453,29 @@ class Prism {
         if (!community) {
             throw new NoCommunityError();
         }
+    }
+
+    async _checkPublication(contentId, isExtended) {
+        const publication = await PublicationModel.findOne(
+            {
+                id: formatContentId(contentId),
+            },
+            {
+                _id: true,
+                id: true,
+                type: isExtended || undefined,
+                mentioned: isExtended || undefined,
+            },
+            {
+                lean: true,
+            }
+        );
+
+        if (!publication) {
+            throw new NoPublicationError();
+        }
+
+        return publication;
     }
 
     async _revertTo(blockNum) {

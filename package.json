@@ -11,7 +11,7 @@
     "notifications"
   ],
   "author": "Commun",
-  "license": "ISC",
+  "license": "GPL-3.0",
   "dependencies": {
     "cyberway-core-service": "^3.55.4-1"
   },

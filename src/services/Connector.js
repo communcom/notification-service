@@ -2,12 +2,15 @@ const core = require('cyberway-core-service');
 const { Connector: BasicConnector } = core.services;
 const env = require('../data/env');
 const Api = require('../controllers/Api');
+const { setConnector } = require('../utils/processStore');
 
 class Connector extends BasicConnector {
     constructor() {
         super();
 
         this._api = new Api();
+
+        setConnector(this);
     }
 
     async start() {
@@ -34,7 +37,10 @@ class Connector extends BasicConnector {
                     },
                 },
             },
-            requiredClients: {},
+            requiredClients: {
+                prism: env.GLS_PRISM_CONNECT,
+                prismApi: env.GLS_PRISM_API_CONNECT,
+            },
         });
     }
 }

@@ -2,38 +2,18 @@ const core = require('cyberway-core-service');
 const { MongoDB } = core.services;
 
 module.exports = MongoDB.makeModel(
-    'Event',
+    'CommunityBlock',
     {
-        eventType: {
-            type: String,
-            required: true,
-        },
-        communityId: {
-            type: String,
-            default: null,
-        },
         userId: {
             type: String,
             required: true,
         },
-        initiatorUserId: {
+        blockCommunityId: {
             type: String,
-            default: null,
-        },
-        publicationId: {
-            type: String,
-            default: null,
-        },
-        blockTime: {
-            type: Date,
             required: true,
         },
         blockNum: {
             type: Number,
-            required: true,
-        },
-        data: {
-            type: Object,
             required: true,
         },
     },
@@ -42,7 +22,10 @@ module.exports = MongoDB.makeModel(
             {
                 fields: {
                     userId: 1,
-                    blockTime: -1,
+                    blockCommunityId: 1,
+                },
+                options: {
+                    unique: true,
                 },
             },
             {

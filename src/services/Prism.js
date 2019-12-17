@@ -1,11 +1,13 @@
 const core = require('cyberway-core-service');
 const { Basic: BasicService, BlockSubscribe } = core.services;
 const { Logger } = core.utils;
-const MetaModel = require('../models/Meta');
 
+const MetaModel = require('../models/Meta');
 const env = require('../data/env');
 const PrismController = require('../controllers/Prism');
 const ForkCleaner = require('../controllers/ForkCleaner');
+const { getConnector } = require('../utils/processStore');
+const { timeout } = require('../utils/timeout');
 
 class Prism extends BasicService {
     async start() {
@@ -19,7 +21,14 @@ class Prism extends BasicService {
         this._forkCleaner = new ForkCleaner();
 
         this._subscriber = new BlockSubscribe({
-            handler: this._handleEvent.bind(this),
+            handler: async block => {
+                try {
+                    await this._handleEvent(block);
+                } catch (err) {
+                    Logger.error('Critical Error!');
+                    Logger.error('Block handling failed:', err);
+                }
+            },
         });
 
         if (meta.lastBlockNum) {
@@ -56,6 +65,7 @@ class Prism extends BasicService {
     async _handleEvent({ type, data }) {
         switch (type) {
             case BlockSubscribe.EVENT_TYPES.BLOCK:
+                await this._waitForPrism(data);
                 await this._handleBlock(data);
                 await this._setLastBlock(data);
                 break;
@@ -68,6 +78,17 @@ class Prism extends BasicService {
                 break;
             default:
         }
+    }
+
+    async _waitForPrism(block) {
+        const con = getConnector();
+
+        await timeout(
+            60000,
+            con.callService('prism', 'waitForBlock', {
+                blockNum: block.blockNum,
+            })
+        );
     }
 
     async _handleBlock(block) {

@@ -1,5 +1,6 @@
 const EventModel = require('../models/Event');
 const UserBlockModel = require('../models/UserBlock');
+const CommunityBlockModel = require('../models/CommunityBlock');
 
 class Api {
     async getNotifications({ userId, offset, limit }) {
@@ -9,13 +10,30 @@ class Api {
             { lean: true }
         );
 
+        const blockingCommunities = await CommunityBlockModel.find(
+            {
+                userId,
+            },
+            {
+                _id: false,
+                blockCommunityId: true,
+            },
+            { lean: true }
+        );
+
         const match = {
             userId,
         };
 
         if (blockingUsers.length) {
             match.initiatorUserId = {
-                $nin: blockingUsers.map(user => user.blockUserId),
+                $nin: blockingUsers.map(block => block.blockUserId),
+            };
+        }
+
+        if (blockingCommunities.length) {
+            match.communityId = {
+                $nin: blockingCommunities.map(block => block.blockCommunityId),
             };
         }
 
@@ -38,6 +56,14 @@ class Api {
                     localField: 'communityId',
                     foreignField: 'communityId',
                     as: 'community',
+                },
+            },
+            {
+                $lookup: {
+                    from: 'publications',
+                    localField: 'publicationId',
+                    foreignField: 'id',
+                    as: 'entry',
                 },
             },
             {
@@ -73,11 +99,14 @@ class Api {
                             },
                         },
                     },
+                    entry: { $arrayElemAt: ['$entry', 0] },
                 },
             },
         ]);
 
         const items = events.map(event => {
+            const { eventType } = event;
+
             if (!event.community.communityId) {
                 if (event.communityId) {
                     throw new Error('Community is not found');
@@ -96,7 +125,7 @@ class Api {
 
             let data = null;
 
-            switch (event.eventType) {
+            switch (eventType) {
                 case 'subscribe':
                     data = {
                         user: event.user,
@@ -118,15 +147,17 @@ class Api {
                     };
                     break;
 
-                case 'reply':
-                    data = {
-                        author: event.user,
-                        messageId: event.data.messageId,
-                        replyMessageId: event.data.replyMessageId,
-                    };
-                    break;
-
                 default:
+            }
+
+            if (eventType === 'mention' || eventType === 'upvote') {
+                data.entryType = event.type;
+                data.contentId = event.entry.contentId;
+                data.imageUrl = event.entry.imageUrl;
+
+                if (event.entry.type === 'comment') {
+                    data.parents = event.entry.parents;
+                }
             }
 
             return {
