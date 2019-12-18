@@ -153,7 +153,7 @@ class Api {
                     throw new Error('Entry not found');
                 }
 
-                data.entryType = event.entry.type;
+                data.entityType = event.entry.type;
 
                 const entry = {
                     contentId: event.entry.contentId,
