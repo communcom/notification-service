@@ -13,7 +13,7 @@
   "author": "Commun",
   "license": "GPL-3.0",
   "dependencies": {
-    "cyberway-core-service": "^3.55.4-1"
+    "cyberway-core-service": "^3.55.5"
   },
   "devDependencies": {
     "prettier": "^1.19.1"

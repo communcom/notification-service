@@ -19,12 +19,9 @@ class Connector extends BasicConnector {
                 getNotifications: {
                     handler: this._api.getNotifications,
                     scope: this._api,
+                    requireAuth: true,
                     validation: {
-                        required: ['userId'],
                         properties: {
-                            userId: {
-                                type: 'string',
-                            },
                             offset: {
                                 type: 'number',
                                 default: 0,
