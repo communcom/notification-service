@@ -65,7 +65,10 @@ class Prism extends BasicService {
     async _handleEvent({ type, data }) {
         switch (type) {
             case BlockSubscribe.EVENT_TYPES.BLOCK:
-                await this._waitForPrism(data);
+                if (!env.GLS_GUARANTEED_BLOCK_NUM || data.blockNum > env.GLS_GUARANTEED_BLOCK_NUM) {
+                    await this._waitForPrism(data);
+                }
+
                 await this._handleBlock(data);
                 await this._setLastBlock(data);
                 break;
