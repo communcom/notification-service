@@ -52,8 +52,9 @@ class Prism {
                         }
 
                         Logger.error('Critical error!');
-                        Logger.error('Action processing failed:', blockInfo, action);
-                        Logger.error(err);
+                        Logger.error('Action processing failed, block info:', blockInfo);
+                        Logger.error('Action:', action);
+                        Logger.error('Error:', err);
                         process.exit(1);
                     }
                 }
@@ -205,6 +206,7 @@ class Prism {
         { commun_code: communityId, message_id, parent_id }
     ) {
         const messageId = normalizeMessageId(message_id, communityId);
+        const formattedMessageId = formatContentId(messageId);
 
         const [author] = await Promise.all([
             this._checkUser(messageId.userId),
@@ -218,15 +220,34 @@ class Prism {
         let entity;
 
         if (parent_id.author) {
-            comment = await con.callService('prismApi', 'getComment', messageId);
-            entity = comment;
+            try {
+                comment = await con.callService('prismApi', 'getComment', messageId);
+                entity = comment;
+            } catch (err) {
+                if (err.code === 404) {
+                    // Комментарий был отброшен призмой.
+                    Logger.info(`Comment "${formattedMessageId}" is not found in prism (skip).`);
+                    return;
+                } else {
+                    throw err;
+                }
+            }
         } else {
-            post = await con.callService('prismApi', 'getPost', messageId);
-            entity = post;
+            try {
+                post = await con.callService('prismApi', 'getPost', messageId);
+                entity = post;
+            } catch (err) {
+                if (err.code === 404) {
+                    // Пост был отброшен призмой.
+                    Logger.info(`Post "${formattedMessageId}" is not found in prism (skip).`);
+                    return;
+                } else {
+                    throw err;
+                }
+            }
         }
 
         if (!entity) {
-            // Публикация была отброшена призмой.
             return;
         }
 
