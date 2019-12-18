@@ -18,6 +18,10 @@ module.exports = MongoDB.makeModel(
             type: String,
             default: null,
         },
+        lastVisitAt: {
+            type: Date,
+            default: null,
+        },
         blockNum: {
             type: Number,
             required: true,

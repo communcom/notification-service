@@ -40,6 +40,11 @@ module.exports = MongoDB.makeModel(
             type: Object,
             required: true,
         },
+        isViewed: {
+            type: Boolean,
+            default: false,
+            required: true,
+        },
     },
     {
         index: [
@@ -47,6 +52,12 @@ module.exports = MongoDB.makeModel(
                 fields: {
                     userId: 1,
                     blockTime: -1,
+                },
+            },
+            {
+                fields: {
+                    userId: 1,
+                    createdAt: -1,
                 },
             },
             {

@@ -182,6 +182,57 @@ class Api {
             items,
         };
     }
+
+    async getStatus({}, { userId }) {
+        const user = await UserModel.findOne(
+            { userId },
+            { _id: false, lastVisitAt: true },
+            { lean: true }
+        );
+
+        if (!user) {
+            return {
+                hasUnseen: false,
+            };
+        }
+
+        const query = {
+            userId,
+        };
+
+        if (user.lastVisitAt) {
+            query.creationTime = {
+                $gte: user.lastVisitAt,
+            };
+        }
+
+        const somethingFound = await EventModel.findOne(
+            {
+                query,
+            },
+            {
+                _id: true,
+            },
+            {
+                lean: true,
+            }
+        );
+
+        return {
+            hasUnseen: Boolean(somethingFound),
+        };
+    }
+
+    async markAllAsSeen({}, { userId }) {
+        await UserModel.updateOne(
+            { userId },
+            {
+                $set: {
+                    lastVisitAt: new Date(),
+                },
+            }
+        );
+    }
 }
 
 module.exports = Api;
