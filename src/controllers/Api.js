@@ -69,6 +69,7 @@ class Api {
             {
                 $project: {
                     _id: false,
+                    id: true,
                     eventType: true,
                     communityId: true,
                     initiatorUserId: true,
@@ -105,7 +106,7 @@ class Api {
         ]);
 
         const items = events.map(event => {
-            const { eventType } = event;
+            const { id, eventType } = event;
 
             if (!event.community.communityId) {
                 if (event.communityId) {
@@ -169,7 +170,8 @@ class Api {
             }
 
             return {
-                eventType: event.eventType,
+                id,
+                eventType,
                 timestamp: event.timestamp,
                 community: event.community,
                 ...data,

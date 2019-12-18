@@ -4,6 +4,10 @@ const { MongoDB } = core.services;
 module.exports = MongoDB.makeModel(
     'Event',
     {
+        id: {
+            type: String,
+            required: true,
+        },
         eventType: {
             type: String,
             required: true,
@@ -43,6 +47,11 @@ module.exports = MongoDB.makeModel(
                 fields: {
                     userId: 1,
                     blockTime: -1,
+                },
+            },
+            {
+                fields: {
+                    id: 1,
                 },
             },
             {

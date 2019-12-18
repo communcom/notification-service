@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const core = require('cyberway-core-service');
 const { Logger } = core.utils;
 
@@ -41,11 +42,19 @@ class Prism {
         };
 
         for (const trx of block.transactions) {
-            for (const action of trx.actions) {
+            for (let i = 0; i < trx.actions.length; i++) {
+                const action = trx.actions[i];
+
                 // Process only original action and skip unparsed actions
                 if (action.code === action.receiver && action.args) {
                     try {
-                        await this._processAction(blockInfo, action);
+                        await this._processAction(
+                            {
+                                ...blockInfo,
+                                actionId: `${blockInfo.blockId}:${trx.id}:${i}`,
+                            },
+                            action
+                        );
                     } catch (err) {
                         if (err instanceof NoEntityError) {
                             continue;
@@ -202,7 +211,7 @@ class Prism {
     }
 
     async _processNewPublication(
-        { blockNum, blockTime },
+        { blockNum, blockTime, actionId },
         { commun_code: communityId, message_id, parent_id }
     ) {
         const messageId = normalizeMessageId(message_id, communityId);
@@ -252,7 +261,7 @@ class Prism {
         }
 
         const info = extractPublicationInfo(entity);
-        const mentioned = await this._processMentions(author, info);
+        const mentioned = await this._processMentions(actionId, author, info);
 
         try {
             await PublicationModel.create({
@@ -273,7 +282,7 @@ class Prism {
     }
 
     async _processPublicationUpdate(
-        { blockNum, blockTime },
+        { blockNum, blockTime, actionId },
         { commun_code: communityId, message_id }
     ) {
         const messageId = normalizeMessageId(message_id, communityId);
@@ -295,7 +304,12 @@ class Prism {
         }
 
         const info = extractPublicationInfo(post || comment);
-        const mentioned = await this._processMentions(author, info, publication.mentioned);
+        const mentioned = await this._processMentions(
+            actionId,
+            author,
+            info,
+            publication.mentioned
+        );
 
         await PublicationModel.updateOne(
             {
@@ -323,7 +337,7 @@ class Prism {
         );
     }
 
-    async _processMentions(author, info, alreadyMentioned) {
+    async _processMentions(actionId, author, info, alreadyMentioned) {
         const mentioned = new Set(alreadyMentioned || []);
 
         for (const username of info.mentions) {
@@ -339,6 +353,7 @@ class Prism {
 
             if (mentionedUser) {
                 await EventModel.create({
+                    id: makeId(actionId, 'mention', mentionedUser.userId),
                     eventType: 'mention',
                     communityId,
                     publicationId: info.id,
@@ -358,12 +373,16 @@ class Prism {
         return [...mentioned];
     }
 
-    async _processUpvote({ blockNum, blockTime }, { commun_code: communityId, message_id, voter }) {
+    async _processUpvote(
+        { blockNum, blockTime, actionId },
+        { commun_code: communityId, message_id, voter }
+    ) {
         const messageId = normalizeMessageId(message_id, communityId);
 
         await Promise.all([this._checkCommunity(communityId), this._checkUser(messageId.userId)]);
 
         await EventModel.create({
+            id: makeId(actionId, 'upvote', messageId.userId),
             eventType: 'upvote',
             communityId,
             userId: messageId.userId,
@@ -375,11 +394,12 @@ class Prism {
         });
     }
 
-    async _processSubscription({ blockNum, blockTime }, { pinner, pinning }) {
+    async _processSubscription({ blockNum, blockTime, actionId }, { pinner, pinning }) {
         await this._checkUser(pinner);
         await this._checkUser(pinning);
 
         await EventModel.create({
+            id: makeId(actionId, 'subscribe', pinning),
             eventType: 'subscribe',
             userId: pinning,
             initiatorUserId: pinner,
@@ -590,6 +610,13 @@ function normalizeMessageId(messageId, communityId) {
         userId: messageId.author,
         permlink: messageId.permlink,
     };
+}
+
+function makeId(actionId, eventType, userId) {
+    const key = `${actionId}|${eventType}|${userId}`;
+    const sha = crypto.createHash('sha1');
+    sha.update(key);
+    return sha.digest('hex');
 }
 
 module.exports = Prism;
