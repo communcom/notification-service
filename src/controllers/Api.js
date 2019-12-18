@@ -3,7 +3,7 @@ const UserBlockModel = require('../models/UserBlock');
 const CommunityBlockModel = require('../models/CommunityBlock');
 
 class Api {
-    async getNotifications({ userId, offset, limit }) {
+    async getNotifications({ offset, limit }, { userId }) {
         const blockingUsers = await UserBlockModel.find(
             { userId },
             { _id: false, blockUserId: true },
