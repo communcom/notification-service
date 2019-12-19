@@ -43,6 +43,11 @@ class Connector extends BasicConnector {
                     scope: this._api,
                     requireAuth: true,
                 },
+                markAsRead: {
+                    handler: this._api.markAsRead,
+                    scope: this._api,
+                    requireAuth: true,
+                },
             },
             requiredClients: {
                 prism: env.GLS_PRISM_CONNECT,

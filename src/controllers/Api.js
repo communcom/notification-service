@@ -75,6 +75,7 @@ class Api {
                     initiatorUserId: true,
                     data: true,
                     timestamp: '$blockTime',
+                    isRead: true,
                     user: {
                         $let: {
                             vars: {
@@ -229,6 +230,20 @@ class Api {
             {
                 $set: {
                     lastVisitAt: new Date(),
+                },
+            }
+        );
+    }
+
+    async markAsRead({ notificationId }, { userId }) {
+        await EventModel.updateOne(
+            {
+                notificationId,
+                userId,
+            },
+            {
+                $set: {
+                    isRead: true,
                 },
             }
         );
