@@ -41,9 +41,12 @@ class Prism {
             sequence: block.sequence,
         };
 
+        let actionNum = 0;
+
         for (const trx of block.transactions) {
             for (let i = 0; i < trx.actions.length; i++) {
                 const action = trx.actions[i];
+                actionNum++;
 
                 // Process only original action and skip unparsed actions
                 if (action.code === action.receiver && action.args) {
@@ -52,6 +55,8 @@ class Prism {
                             {
                                 ...blockInfo,
                                 actionId: `${blockInfo.blockId}:${trx.id}:${i}`,
+                                // Используем корректированное время чтобы нотификации из одного блока имели разное время
+                                blockTimeCorrected: block.blockTime + actionNum,
                             },
                             action
                         );
@@ -343,7 +348,7 @@ class Prism {
     }
 
     async _processMentions({ actionInfo, communityId, messageId, author, info, alreadyMentioned }) {
-        const { blockNum, blockTime, actionId } = actionInfo;
+        const { blockNum, blockTime, blockTimeCorrected, actionId } = actionInfo;
         const mentioned = new Set(alreadyMentioned || []);
 
         for (const username of info.mentions) {
@@ -367,6 +372,7 @@ class Prism {
                     initiatorUserId: messageId.userId,
                     blockNum,
                     blockTime,
+                    blockTimeCorrected,
                     data: {},
                 });
 
@@ -378,7 +384,7 @@ class Prism {
     }
 
     async _processUpvote(
-        { blockNum, blockTime, actionId },
+        { blockNum, blockTime, blockTimeCorrected, actionId },
         { commun_code: communityId, message_id, voter }
     ) {
         const messageId = normalizeMessageId(message_id, communityId);
@@ -394,11 +400,15 @@ class Prism {
             publicationId: formatContentId(messageId),
             blockNum,
             blockTime,
+            blockTimeCorrected,
             data: {},
         });
     }
 
-    async _processSubscription({ blockNum, blockTime, actionId }, { pinner, pinning }) {
+    async _processSubscription(
+        { blockNum, blockTime, blockTimeCorrected, actionId },
+        { pinner, pinning }
+    ) {
         await this._checkUser(pinner);
         await this._checkUser(pinning);
 
@@ -409,6 +419,7 @@ class Prism {
             initiatorUserId: pinner,
             blockNum,
             blockTime,
+            blockTimeCorrected,
             data: {},
         });
     }

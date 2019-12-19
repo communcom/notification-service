@@ -3,7 +3,7 @@ const UserBlockModel = require('../models/UserBlock');
 const CommunityBlockModel = require('../models/CommunityBlock');
 
 class Api {
-    async getNotifications({ offset, limit }, { userId }) {
+    async getNotifications({ beforeThan, limit }, { userId }) {
         const blockingUsers = await UserBlockModel.find(
             { userId },
             { _id: false, blockUserId: true },
@@ -37,10 +37,24 @@ class Api {
             };
         }
 
+        if (beforeThan) {
+            const date = new Date(beforeThan);
+
+            if (date.toString() === 'Invalid Date') {
+                throw {
+                    code: 500,
+                    message: 'Invalid "beforeThan" parameter value',
+                };
+            }
+
+            match.blockTimeCorrected = {
+                $lte: date,
+            };
+        }
+
         const events = await EventModel.aggregate([
             { $match: match },
-            { $sort: { blockTime: -1 } },
-            { $skip: offset },
+            { $sort: { blockTimeCorrected: -1 } },
             { $limit: limit },
             {
                 $lookup: {

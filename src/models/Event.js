@@ -28,12 +28,16 @@ module.exports = MongoDB.makeModel(
             type: String,
             default: null,
         },
+        blockNum: {
+            type: Number,
+            required: true,
+        },
         blockTime: {
             type: Date,
             required: true,
         },
-        blockNum: {
-            type: Number,
+        blockTimeCorrected: {
+            type: Date,
             required: true,
         },
         data: {
@@ -51,7 +55,7 @@ module.exports = MongoDB.makeModel(
             {
                 fields: {
                     userId: 1,
-                    blockTime: -1,
+                    blockTimeCorrected: -1,
                 },
             },
             {

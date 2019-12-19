@@ -22,9 +22,9 @@ class Connector extends BasicConnector {
                     requireAuth: true,
                     validation: {
                         properties: {
-                            offset: {
-                                type: 'number',
-                                default: 0,
+                            beforeThan: {
+                                type: ['string', 'number'],
+                                default: null,
                             },
                             limit: {
                                 type: 'number',
