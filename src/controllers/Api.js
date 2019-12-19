@@ -1,4 +1,5 @@
 const EventModel = require('../models/Event');
+const UserModel = require('../models/User');
 const UserBlockModel = require('../models/UserBlock');
 const CommunityBlockModel = require('../models/CommunityBlock');
 
