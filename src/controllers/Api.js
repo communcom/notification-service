@@ -238,7 +238,7 @@ class Api {
         };
     }
 
-    async markAllAsSeen({}, { userId }) {
+    async markAllAsViewed({}, { userId }) {
         await UserModel.updateOne(
             { userId },
             {

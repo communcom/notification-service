@@ -38,8 +38,8 @@ class Connector extends BasicConnector {
                     scope: this._api,
                     requireAuth: true,
                 },
-                markAllAsSeen: {
-                    handler: this._api.markAllAsSeen,
+                markAllAsViewed: {
+                    handler: this._api.markAllAsViewed,
                     scope: this._api,
                     requireAuth: true,
                 },
