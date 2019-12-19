@@ -321,7 +321,7 @@ class Prism {
             parents.comment.username = commentAuthor.username;
         }
 
-        return comment.parents;
+        return parents;
     }
 
     async _processPublicationUpdate(actionInfo, { commun_code: communityId, message_id }) {

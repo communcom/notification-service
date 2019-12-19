@@ -1,10 +1,10 @@
 version: '2.1'
 services:
-  notify-node:
-    container_name: notify-node
+  notification-node:
+    container_name: notification-node
     restart: always
     depends_on:
-      - notify-mongo
+      - notification-mongo
     build:
       context: .
       dockerfile: Dockerfile
@@ -16,8 +16,8 @@ services:
     env_file:
       - .env
 
-  notify-mongo:
-    container_name: registration-mongo
+  notification-mongo:
+    container_name: notification-mongo
     image: mongo
     restart: always
     healthcheck:
