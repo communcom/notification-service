@@ -277,8 +277,11 @@ class Prism {
             await PublicationModel.create({
                 ...info,
                 type: comment ? 'comment' : 'post',
-                contentId: entity.contentId,
-                parents: comment ? comment.parents : null,
+                contentId: {
+                    ...entity.contentId,
+                    username: entity.author.username,
+                },
+                parents: comment ? await this._processParents(comment) : null,
                 mentioned,
                 blockNum,
             });
@@ -289,6 +292,36 @@ class Prism {
                 throw err;
             }
         }
+    }
+
+    async _processParents({ parents }) {
+        const postAuthor = await UserModel.findOne(
+            { userId: parents.post.userId },
+            { _id: false, username: true },
+            { lean: true }
+        );
+
+        if (!postAuthor) {
+            throw new NoUserError();
+        }
+
+        parents.post.username = postAuthor.username;
+
+        if (parents.comment) {
+            const commentAuthor = await UserModel.findOne(
+                { userId: parents.comment.userId },
+                { _id: false, username: true },
+                { lean: true }
+            );
+
+            if (!commentAuthor) {
+                throw new NoUserError();
+            }
+
+            parents.comment.username = commentAuthor.username;
+        }
+
+        return comment.parents;
     }
 
     async _processPublicationUpdate(actionInfo, { commun_code: communityId, message_id }) {
