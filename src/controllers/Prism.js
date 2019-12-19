@@ -210,10 +210,9 @@ class Prism {
         );
     }
 
-    async _processNewPublication(
-        { blockNum, blockTime, actionId },
-        { commun_code: communityId, message_id, parent_id }
-    ) {
+    async _processNewPublication(actionInfo, { commun_code: communityId, message_id, parent_id }) {
+        const { blockNum } = actionInfo;
+
         const messageId = normalizeMessageId(message_id, communityId);
         const formattedMessageId = formatContentId(messageId);
 
@@ -261,7 +260,13 @@ class Prism {
         }
 
         const info = extractPublicationInfo(entity);
-        const mentioned = await this._processMentions({ actionId, author, communityId, info });
+        const mentioned = await this._processMentions({
+            actionInfo,
+            communityId,
+            messageId,
+            author,
+            info,
+        });
 
         try {
             await PublicationModel.create({
@@ -281,10 +286,8 @@ class Prism {
         }
     }
 
-    async _processPublicationUpdate(
-        { blockNum, blockTime, actionId },
-        { commun_code: communityId, message_id }
-    ) {
+    async _processPublicationUpdate(actionInfo, { commun_code: communityId, message_id }) {
+        const { blockNum } = actionInfo;
         const messageId = normalizeMessageId(message_id, communityId);
 
         const [author, publication] = await Promise.all([
@@ -305,8 +308,9 @@ class Prism {
 
         const info = extractPublicationInfo(post || comment);
         const mentioned = await this._processMentions({
-            actionId,
+            actionInfo,
             communityId,
+            messageId,
             author,
             info,
             alreadyMentioned: publication.mentioned,
@@ -338,7 +342,8 @@ class Prism {
         );
     }
 
-    async _processMentions({ actionId, communityId, author, info, alreadyMentioned }) {
+    async _processMentions({ actionInfo, communityId, messageId, author, info, alreadyMentioned }) {
+        const { blockNum, blockTime, actionId } = actionInfo;
         const mentioned = new Set(alreadyMentioned || []);
 
         for (const username of info.mentions) {
@@ -362,9 +367,7 @@ class Prism {
                     initiatorUserId: messageId.userId,
                     blockNum,
                     blockTime,
-                    data: {
-                        messageId,
-                    },
+                    data: {},
                 });
 
                 mentioned.add(username);

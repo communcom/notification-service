@@ -40,7 +40,7 @@ module.exports = MongoDB.makeModel(
             type: Object,
             required: true,
         },
-        isViewed: {
+        isRead: {
             type: Boolean,
             default: false,
             required: true,
