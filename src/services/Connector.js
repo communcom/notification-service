@@ -23,7 +23,7 @@ class Connector extends BasicConnector {
                     validation: {
                         properties: {
                             beforeThan: {
-                                type: ['string', 'number'],
+                                type: ['string', 'number', 'null'],
                                 default: null,
                             },
                             limit: {
