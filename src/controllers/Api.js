@@ -88,7 +88,7 @@ class Api {
                     communityId: true,
                     initiatorUserId: true,
                     data: true,
-                    timestamp: '$blockTime',
+                    timestamp: '$blockTimeCorrected',
                     isRead: true,
                     user: {
                         $let: {
