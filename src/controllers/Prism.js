@@ -261,7 +261,7 @@ class Prism {
         }
 
         const info = extractPublicationInfo(entity);
-        const mentioned = await this._processMentions(actionId, author, info);
+        const mentioned = await this._processMentions({ actionId, author, communityId, info });
 
         try {
             await PublicationModel.create({
@@ -304,12 +304,13 @@ class Prism {
         }
 
         const info = extractPublicationInfo(post || comment);
-        const mentioned = await this._processMentions(
+        const mentioned = await this._processMentions({
             actionId,
+            communityId,
             author,
             info,
-            publication.mentioned
-        );
+            alreadyMentioned: publication.mentioned,
+        });
 
         await PublicationModel.updateOne(
             {
@@ -337,7 +338,7 @@ class Prism {
         );
     }
 
-    async _processMentions(actionId, author, info, alreadyMentioned) {
+    async _processMentions({ actionId, communityId, author, info, alreadyMentioned }) {
         const mentioned = new Set(alreadyMentioned || []);
 
         for (const username of info.mentions) {
