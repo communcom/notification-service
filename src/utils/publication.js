@@ -28,6 +28,16 @@ function extractPublicationInfo({ contentId, document }) {
     if (document.attributes.type === 'article') {
         text = document.attributes.title;
         imageUrl = document.attributes.coverUrl;
+
+        for (const block of document.content) {
+            if (block.type === 'paragraph') {
+                for (const { type, content } of block.content) {
+                    if (type === 'mention') {
+                        mentions.add(content);
+                    }
+                }
+            }
+        }
     } else {
         let attach = null;
         const textParts = [];

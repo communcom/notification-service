@@ -265,6 +265,7 @@ class Prism {
         }
 
         const info = extractPublicationInfo(entity);
+
         const mentioned = await this._processMentions({
             actionInfo,
             communityId,
