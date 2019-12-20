@@ -11,6 +11,9 @@ const contentId = {
         type: String,
         required: true,
     },
+    username: {
+        type: String,
+    },
 };
 
 const revertLog = {
