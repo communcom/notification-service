@@ -247,7 +247,7 @@ class Api {
         };
 
         if (user.lastVisitAt) {
-            query.creationTime = {
+            query.createdAt = {
                 $gte: user.lastVisitAt,
             };
         }
