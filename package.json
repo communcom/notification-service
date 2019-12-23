@@ -1,0 +1,21 @@
+{
+  "name": "notification-service",
+  "version": "0.1.0",
+  "description": "",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "keywords": [
+    "service",
+    "notifications"
+  ],
+  "author": "Commun",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "cyberway-core-service": "^3.55.5"
+  },
+  "devDependencies": {
+    "prettier": "^1.19.1"
+  }
+}
