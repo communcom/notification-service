@@ -252,17 +252,7 @@ class Api {
             };
         }
 
-        const somethingFound = await EventModel.findOne(
-            {
-                query,
-            },
-            {
-                _id: true,
-            },
-            {
-                lean: true,
-            }
-        );
+        const somethingFound = await EventModel.findOne(query, { _id: true }, { lean: true });
 
         return {
             hasUnseen: Boolean(somethingFound),
