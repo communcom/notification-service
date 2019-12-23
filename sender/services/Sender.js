@@ -30,7 +30,8 @@ class Sender extends Service {
                 data = JSON.parse(msg.content);
                 await this._handleNotification(data, msg);
             } catch (err) {
-                Logger.warn('Notification handling failed:', data, '\nError:', err);
+                Logger.warn('Notification handling failed:', data);
+                Logger.warn('Error:', err);
             }
         });
     }
