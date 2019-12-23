@@ -1,15 +1,15 @@
 const core = require('cyberway-core-service');
-const { Basic: BasicService, BlockSubscribe } = core.services;
+const { Service, BlockSubscribe } = core.services;
 const { Logger } = core.utils;
 
 const MetaModel = require('../models/Meta');
 const env = require('../data/env');
 const PrismController = require('../controllers/Prism');
 const ForkCleaner = require('../controllers/ForkCleaner');
-const { getConnector } = require('../utils/processStore');
+const { getConnector, getSender } = require('../utils/processStore');
 const { timeout } = require('../utils/timeout');
 
-class Prism extends BasicService {
+class Prism extends Service {
     async start() {
         let meta = await MetaModel.findOne();
 
@@ -17,16 +17,19 @@ class Prism extends BasicService {
             meta = await MetaModel.create({});
         }
 
+        this._lastNotificationBlockNum = meta.lastNotificationBlockNum || 0;
+
         this._prismController = new PrismController();
         this._forkCleaner = new ForkCleaner();
 
         this._subscriber = new BlockSubscribe({
-            handler: async block => {
+            handler: async data => {
                 try {
-                    await this._handleEvent(block);
+                    await this._handleEvent(data);
                 } catch (err) {
                     Logger.error('Critical Error!');
                     Logger.error('Block handling failed:', err);
+                    process.exit(1);
                 }
             },
         });
@@ -69,8 +72,9 @@ class Prism extends BasicService {
                     await this._waitForPrism(data);
                 }
 
-                await this._handleBlock(data);
+                const notifications = await this._handleBlock(data);
                 await this._setLastBlock(data);
+                await this._processNotifications(notifications, data);
                 break;
             case BlockSubscribe.EVENT_TYPES.IRREVERSIBLE_BLOCK:
                 await this._handleIrreversibleBlock(data);
@@ -96,7 +100,7 @@ class Prism extends BasicService {
 
     async _handleBlock(block) {
         try {
-            await this._prismController.processBlock(block);
+            return await this._prismController.processBlock(block);
         } catch (err) {
             Logger.error(`Cant disperse block, num: ${block.blockNum}, id: ${block.id}`, err);
             process.exit(1);
@@ -105,6 +109,23 @@ class Prism extends BasicService {
 
     async _handleIrreversibleBlock(block) {
         await this._forkCleaner.clearRevertData(block.blockNum);
+    }
+
+    async _processNotifications(notifications, block) {
+        if (notifications.length && block.blockNum > this._lastNotificationBlockNum) {
+            this._lastNotificationBlockNum = block.blockNum;
+
+            await MetaModel.updateOne(
+                {},
+                {
+                    $set: {
+                        lastNotificationBlockNum: block.blockNum,
+                    },
+                }
+            );
+
+            await getSender().processNotifications(notifications, block.blockTime);
+        }
     }
 
     async _handleFork(baseBlockNum) {

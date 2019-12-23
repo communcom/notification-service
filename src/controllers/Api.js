@@ -53,10 +53,42 @@ class Api {
             };
         }
 
-        const events = await EventModel.aggregate([
+        const notifications = await this._getNotifications([
             { $match: match },
             { $sort: { blockTimeCorrected: -1 } },
             { $limit: limit },
+        ]);
+
+        return {
+            items: notifications,
+        };
+    }
+
+    async getNotification({ id }) {
+        const [notification] = await this._getNotifications([
+            {
+                $match: {
+                    id,
+                },
+            },
+            {
+                $limit: 1,
+            },
+        ]);
+
+        if (!notification) {
+            throw {
+                code: 404,
+                message: 'Notification is not found',
+            };
+        }
+
+        return notification;
+    }
+
+    async _getNotifications(aggregation) {
+        const events = await EventModel.aggregate([
+            ...aggregation,
             {
                 $lookup: {
                     from: 'users',
@@ -194,9 +226,7 @@ class Api {
             };
         });
 
-        return {
-            items,
-        };
+        return items;
     }
 
     async getStatus({}, { userId }) {

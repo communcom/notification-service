@@ -33,6 +33,19 @@ class Connector extends BasicConnector {
                         },
                     },
                 },
+                // For services use only (not client api)
+                getNotification: {
+                    handler: this._api.getNotification,
+                    scope: this._api,
+                    validation: {
+                        required: ['id'],
+                        properties: {
+                            id: {
+                                type: 'string',
+                            },
+                        },
+                    },
+                },
                 getStatus: {
                     handler: this._api.getStatus,
                     scope: this._api,
