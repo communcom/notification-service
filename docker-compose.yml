@@ -5,14 +5,28 @@ services:
     restart: always
     depends_on:
       - notification-mongo
+      - notification-mq
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: processor.Dockerfile
     networks:
       - services-tier
     ports:
       - $GLS_CONNECTOR_HOST:$GLS_CONNECTOR_PORT:$GLS_CONNECTOR_PORT
       - $GLS_METRICS_HOST:$GLS_METRICS_PORT:$GLS_METRICS_PORT
+    env_file:
+      - .env
+
+  notification-sender-node:
+    container_name: notification-sender-node
+    restart: always
+    depends_on:
+      - notification-mq
+    build:
+      context: .
+      dockerfile: sender.Dockerfile
+    networks:
+      - services-tier
     env_file:
       - .env
 
@@ -32,8 +46,27 @@ services:
     networks:
       - services-tier
 
+  notification-mq:
+    container_name: notification-mq
+    image: rabbitmq:3
+    restart: always
+    healthcheck:
+      test: rabbitmq-diagnostics ping -q
+      interval: 10s
+      timeout: 2s
+      retries: 10
+    volumes:
+      - notify_mq_vol:/var/lib/rabbitmq/mnesia
+    ports:
+      - 127.0.0.1:5672:5672
+    environment:
+      NODENAME: rabbit@notification-mq
+    networks:
+      - services-tier
+
 networks:
   services-tier:
 
 volumes:
   notify_mongodb_vol:
+  notify_mq_vol:

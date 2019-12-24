@@ -39,6 +39,7 @@ class Prism {
             blockNum: block.blockNum,
             blockTime: block.blockTime,
             sequence: block.sequence,
+            notifications: [],
         };
 
         let actionNum = 0;
@@ -74,6 +75,8 @@ class Prism {
                 }
             }
         }
+
+        return blockInfo.notifications;
     }
 
     async revertTo(blockNum) {
@@ -86,12 +89,12 @@ class Prism {
         await this._revertTo(baseBlockNum);
     }
 
-    async _processAction(blockInfo, { code, action, args }) {
+    async _processAction(actionInfo, { code, action, args }) {
         switch (code) {
             case 'cyber.domain':
                 switch (action) {
                     case 'newusername':
-                        await this._processNewUser(blockInfo, args);
+                        await this._processNewUser(actionInfo, args);
                         break;
                     default:
                 }
@@ -100,16 +103,16 @@ class Prism {
             case 'c.list':
                 switch (action) {
                     case 'create':
-                        await this._processNewCommunity(blockInfo, args);
+                        await this._processNewCommunity(actionInfo, args);
                         break;
                     case 'setinfo':
-                        await this._processCommunityInfo(blockInfo, args);
+                        await this._processCommunityInfo(actionInfo, args);
                         break;
                     case 'hide':
-                        await this._processCommunityHide(blockInfo, args);
+                        await this._processCommunityHide(actionInfo, args);
                         break;
                     case 'unhide':
-                        await this._processCommunityUnhide(blockInfo, args);
+                        await this._processCommunityUnhide(actionInfo, args);
                         break;
                     default:
                 }
@@ -118,13 +121,13 @@ class Prism {
             case 'c.gallery':
                 switch (action) {
                     case 'create':
-                        await this._processNewPublication(blockInfo, args);
+                        await this._processNewPublication(actionInfo, args);
                         break;
                     case 'update':
-                        await this._processPublicationUpdate(blockInfo, args);
+                        await this._processPublicationUpdate(actionInfo, args);
                         break;
                     case 'upvote':
-                        await this._processUpvote(blockInfo, args);
+                        await this._processUpvote(actionInfo, args);
                         break;
                     default:
                 }
@@ -133,16 +136,16 @@ class Prism {
             case 'c.social':
                 switch (action) {
                     case 'updatemeta':
-                        await this._updateMeta(blockInfo, args);
+                        await this._updateMeta(actionInfo, args);
                         break;
                     case 'block':
-                        await this._processUserBlock(blockInfo, args);
+                        await this._processUserBlock(actionInfo, args);
                         break;
                     case 'unblock':
-                        await this._processUserUnblock(blockInfo, args);
+                        await this._processUserUnblock(actionInfo, args);
                         break;
                     case 'pin':
-                        await this._processSubscription(blockInfo, args);
+                        await this._processSubscription(actionInfo, args);
                         break;
                     default:
                 }
@@ -382,7 +385,7 @@ class Prism {
     }
 
     async _processMentions({ actionInfo, communityId, messageId, author, info, alreadyMentioned }) {
-        const { blockNum, blockTime, blockTimeCorrected, actionId } = actionInfo;
+        const { blockNum, blockTime, blockTimeCorrected, actionId, notifications } = actionInfo;
         const mentioned = new Set(alreadyMentioned || []);
 
         for (const username of info.mentions) {
@@ -397,8 +400,19 @@ class Prism {
             );
 
             if (mentionedUser) {
+                if (
+                    await this._checkUserBlock(mentionedUser.userId, {
+                        communityId,
+                        userId: author.userId,
+                    })
+                ) {
+                    continue;
+                }
+
+                const id = makeId(actionId, 'mention', mentionedUser.userId);
+
                 await EventModel.create({
-                    id: makeId(actionId, 'mention', mentionedUser.userId),
+                    id,
                     eventType: 'mention',
                     communityId,
                     publicationId: info.id,
@@ -410,6 +424,12 @@ class Prism {
                     data: {},
                 });
 
+                notifications.push({
+                    id,
+                    eventType: 'mention',
+                    userId: mentionedUser.userId,
+                });
+
                 mentioned.add(username);
             }
         }
@@ -418,15 +438,21 @@ class Prism {
     }
 
     async _processUpvote(
-        { blockNum, blockTime, blockTimeCorrected, actionId },
+        { blockNum, blockTime, blockTimeCorrected, actionId, notifications },
         { commun_code: communityId, message_id, voter }
     ) {
         const messageId = normalizeMessageId(message_id, communityId);
 
         await Promise.all([this._checkCommunity(communityId), this._checkUser(messageId.userId)]);
 
+        if (await this._checkUserBlock(messageId.userId, { communityId, userId: voter })) {
+            return;
+        }
+
+        const id = makeId(actionId, 'upvote', messageId.userId);
+
         await EventModel.create({
-            id: makeId(actionId, 'upvote', messageId.userId),
+            id,
             eventType: 'upvote',
             communityId,
             userId: messageId.userId,
@@ -437,17 +463,28 @@ class Prism {
             blockTimeCorrected,
             data: {},
         });
+
+        notifications.push({
+            id,
+            eventType: 'upvote',
+            userId: messageId.userId,
+        });
     }
 
     async _processSubscription(
-        { blockNum, blockTime, blockTimeCorrected, actionId },
+        { blockNum, blockTime, blockTimeCorrected, actionId, notifications },
         { pinner, pinning }
     ) {
-        await this._checkUser(pinner);
-        await this._checkUser(pinning);
+        await Promise.all([this._checkUser(pinner), this._checkUser(pinning)]);
+
+        if (await this._checkUserBlock(pinning, { userId: pinner })) {
+            return;
+        }
+
+        const id = makeId(actionId, 'subscribe', pinning);
 
         await EventModel.create({
-            id: makeId(actionId, 'subscribe', pinning),
+            id,
             eventType: 'subscribe',
             userId: pinning,
             initiatorUserId: pinner,
@@ -455,6 +492,12 @@ class Prism {
             blockTime,
             blockTimeCorrected,
             data: {},
+        });
+
+        notifications.push({
+            id,
+            eventType: 'subscribe',
+            userId: pinning,
         });
     }
 
@@ -550,6 +593,33 @@ class Prism {
         }
 
         return user;
+    }
+
+    async _checkUserBlock(userId, block) {
+        const [blockedUser, blockedCommunity] = await Promise.all([
+            block.userId
+                ? UserBlockModel.findOne(
+                      {
+                          userId,
+                          blockUserId: block.userId,
+                      },
+                      { _id: true },
+                      { lean: true }
+                  )
+                : null,
+            block.communityId
+                ? CommunityBlockModel.findOne(
+                      {
+                          userId,
+                          blockCommunityId: block.communityId,
+                      },
+                      { _id: true },
+                      { lean: true }
+                  )
+                : null,
+        ]);
+
+        return Boolean(blockedUser || blockedCommunity);
     }
 
     async _checkCommunity(communityId) {
