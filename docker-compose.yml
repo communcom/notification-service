@@ -26,7 +26,7 @@ services:
       context: .
       dockerfile: sender.Dockerfile
     volumes:
-      - ${PWD}/auth-firebase-adminsdk.json:/etc/auth-firebase-adminsdk.json
+      - ./auth-firebase-adminsdk.json:/etc/auth-firebase-adminsdk.json
     networks:
       - services-tier
     environment:
