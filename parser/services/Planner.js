@@ -8,7 +8,7 @@ const { setSender } = require('../utils/processStore');
 
 const QUEUE_NAME = 'notifications';
 
-class Sender extends Service {
+class Planner extends Service {
     constructor() {
         super();
 
@@ -43,4 +43,4 @@ class Sender extends Service {
     }
 }
 
-module.exports = Sender;
+module.exports = Planner;

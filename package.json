@@ -2,9 +2,9 @@
   "name": "notification-service",
   "version": "0.1.0",
   "description": "",
-  "main": "src/index.js",
+  "main": "parser/index.js",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node parser/index.js",
     "start:sender": "node sender/index.js"
   },
   "keywords": [

@@ -3,7 +3,7 @@ const { BasicMain } = core.services;
 const env = require('./data/env');
 const Connector = require('./services/Connector');
 const Prism = require('./services/Prism');
-const Sender = require('./services/Sender');
+const Planner = require('./services/Planner');
 
 class Main extends BasicMain {
     constructor() {
@@ -11,7 +11,7 @@ class Main extends BasicMain {
 
         this.startMongoBeforeBoot();
 
-        this.addNested(new Connector(), new Sender(), new Prism());
+        this.addNested(new Connector(), new Planner(), new Prism());
     }
 }
 
