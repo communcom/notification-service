@@ -8,12 +8,12 @@ const { setSender } = require('../utils/processStore');
 
 const QUEUE_NAME = 'notifications';
 
-class Planner extends Service {
+class Queue extends Service {
     constructor() {
         super();
 
         this._mq = null;
-        this._ch = null;
+        this._channel = null;
 
         setSender(this);
     }
@@ -22,15 +22,15 @@ class Planner extends Service {
         await super.start();
 
         this._mq = await mq.connect(env.GLS_MQ_CONNECT);
-        this._ch = await this._mq.createChannel();
-        await this._ch.assertQueue(QUEUE_NAME);
+        this._channel = await this._mq.createChannel();
+        await this._channel.assertQueue(QUEUE_NAME);
     }
 
     async processNotifications(notifications, blockTime) {
         for (const part of chunk(notifications, 50)) {
             await Promise.all(
                 part.map(({ id, eventType, userId }) =>
-                    this._ch.sendToQueue(
+                    this._channel.sendToQueue(
                         QUEUE_NAME,
                         Buffer.from(JSON.stringify({ id, eventType, userId, blockTime })),
                         {
@@ -43,4 +43,4 @@ class Planner extends Service {
     }
 }
 
-module.exports = Planner;
+module.exports = Queue;

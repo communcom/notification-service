@@ -13,17 +13,17 @@ class Sender extends Service {
         super();
 
         this._mq = null;
-        this._ch = null;
+        this._channel = null;
     }
 
     async start() {
         await super.start();
 
         this._mq = await mq.connect(env.GLS_MQ_CONNECT);
-        this._ch = await this._mq.createChannel();
-        await this._ch.assertQueue(QUEUE_NAME);
+        this._channel = await this._mq.createChannel();
+        await this._channel.assertQueue(QUEUE_NAME);
 
-        this._ch.consume(QUEUE_NAME, async msg => {
+        this._channel.consume(QUEUE_NAME, async msg => {
             let data;
 
             try {
@@ -37,7 +37,7 @@ class Sender extends Service {
     }
 
     async _handleNotification({ id, eventType, userId }, msg) {
-        this._ch.ack(msg);
+        this._channel.ack(msg);
 
         const con = getConnector();
 
