@@ -151,7 +151,7 @@ class Sender extends Service {
                 return `${notification.author.username} mentioned you in a ${notification.entityType}: “${entry.shortText}”`;
 
             case 'subscribe':
-                return `${notification.use.username} is following you`;
+                return `${notification.user.username} is following you`;
 
             default:
                 Logger.error(
