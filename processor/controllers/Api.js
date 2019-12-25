@@ -311,6 +311,12 @@ class Api {
             }
         );
     }
+
+    async subscribe(params, user, clientInfo) {
+        console.log('Subscribe call:', { params, user, clientInfo });
+    }
+
+    async unsubscribe() {}
 }
 
 module.exports = Api;
