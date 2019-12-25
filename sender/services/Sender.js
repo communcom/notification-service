@@ -107,8 +107,15 @@ class Sender extends Service {
                         result: notification,
                     });
                 } catch (err) {
-                    Logger.error('Notification send failed:', err);
-                    Logger.error({ channelId });
+                    // 1105 - значит что клиент закрыл соединение
+                    if (err.code === 1105) {
+                        SubscriptionModel.deleteOne({
+                            channelId,
+                        }).catch(() => {});
+                        return;
+                    }
+
+                    Logger.error(`Notification to channel: (${channelId}) failed:`, err);
                 }
             })
         );
@@ -117,7 +124,7 @@ class Sender extends Service {
     async _sendPush(notification, tokens) {
         const message = {
             tokens,
-            data: notification,
+            data: JSON.stringify(notification),
             notification: {
                 body: this._extractBody(notification),
             },
