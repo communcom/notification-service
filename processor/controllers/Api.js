@@ -290,11 +290,16 @@ class Api {
     }
 
     async markAllAsViewed({ until }, { userId }) {
+        const date = new Date(until);
+
         await UserModel.updateOne(
-            { userId },
+            {
+                userId,
+                notificationsViewedAt: { $lt: date },
+            },
             {
                 $set: {
-                    notificationsViewedAt: new Date(until),
+                    notificationsViewedAt: date,
                 },
             }
         );
