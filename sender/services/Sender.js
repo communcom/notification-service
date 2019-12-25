@@ -49,7 +49,10 @@ class Sender extends Service {
     async _handleNotification({ id, eventType, userId }, msg) {
         this._channel.ack(msg);
 
-        const [tokens, sockets] = await Promise.all([this._getFcm(), this._getSockets()]);
+        const [tokens, sockets] = await Promise.all([
+            this._getFcm(userId),
+            this._getSockets(userId),
+        ]);
 
         if (!tokens.length && !sockets.length) {
             return;
