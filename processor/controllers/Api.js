@@ -278,7 +278,7 @@ class Api {
 
         if (user.notificationsViewedAt) {
             query.blockTimeCorrected = {
-                $gte: user.notificationsViewedAt,
+                $gt: user.notificationsViewedAt,
             };
         }
 
