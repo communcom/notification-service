@@ -295,9 +295,14 @@ class Api {
         await UserModel.updateOne(
             {
                 userId,
-                notificationsViewedAt: {
-                    $or: [{ $lt: date }, { $not: { $exists: true } }],
-                },
+                $or: [
+                    {
+                        notificationsViewedAt: { $lt: date },
+                    },
+                    {
+                        notificationsViewedAt: { $not: { $exists: true } },
+                    },
+                ],
             },
             {
                 $set: {
