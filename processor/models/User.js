@@ -18,7 +18,7 @@ module.exports = MongoDB.makeModel(
             type: String,
             default: null,
         },
-        lastVisitAt: {
+        lastNotificationsViewedAt: {
             type: Date,
             default: null,
         },

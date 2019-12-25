@@ -59,8 +59,11 @@ class Api {
             { $limit: limit },
         ]);
 
+        const first = notifications[0];
+
         return {
             items: notifications,
+            lastNotificationTimestamp: first ? first.timestamp : null,
         };
     }
 
@@ -94,7 +97,7 @@ class Api {
                     from: 'users',
                     localField: 'initiatorUserId',
                     foreignField: 'userId',
-                    as: 'user',
+                    as: 'initiator',
                 },
             },
             {
@@ -123,10 +126,11 @@ class Api {
                     data: true,
                     timestamp: '$blockTimeCorrected',
                     isRead: true,
-                    user: {
+                    userId: true,
+                    initiator: {
                         $let: {
                             vars: {
-                                user: { $arrayElemAt: ['$user', 0] },
+                                user: { $arrayElemAt: ['initiator', 0] },
                             },
                             in: {
                                 userId: '$$user.userId',
@@ -153,8 +157,12 @@ class Api {
             },
         ]);
 
+        const users = new Set();
+
         const items = events.map(event => {
-            const { id, eventType } = event;
+            const { id, eventType, userId } = event;
+
+            users.add(userId);
 
             if (!event.community.communityId) {
                 if (event.communityId) {
@@ -164,12 +172,12 @@ class Api {
                 delete event.community;
             }
 
-            if (!event.user.userId) {
+            if (!event.initiator.userId) {
                 if (event.initiatorUserId) {
                     throw new Error('User is not found');
                 }
 
-                delete event.user;
+                delete event.initiator;
             }
 
             let data = null;
@@ -177,19 +185,19 @@ class Api {
             switch (eventType) {
                 case 'subscribe':
                     data = {
-                        user: event.user,
+                        user: event.initiator,
                     };
                     break;
 
                 case 'mention':
                     data = {
-                        author: event.user,
+                        author: event.initiator,
                     };
                     break;
 
                 case 'upvote':
                     data = {
-                        voter: event.user,
+                        voter: event.initiator,
                     };
                     break;
 
@@ -222,9 +230,33 @@ class Api {
                 eventType,
                 timestamp: event.timestamp,
                 community: event.community,
+                userId,
                 ...data,
             };
         });
+
+        if (items.length) {
+            const userModels = await UserModel.find(
+                { userId: { $in: [...users] } },
+                { _id: false, userId: true, lastNotificationsViewedAt: true },
+                { lean: true }
+            );
+
+            const usersViewedAt = new Map(
+                userModels.map(({ userId, lastNotificationsViewedAt }) => [
+                    userId,
+                    lastNotificationsViewedAt,
+                ])
+            );
+
+            for (const item of items) {
+                const lastNotificationsViewedAt = usersViewedAt.get(item.userId);
+
+                item.isNew = lastNotificationsViewedAt
+                    ? item.timestamp > lastNotificationsViewedAt
+                    : true;
+            }
+        }
 
         return items;
     }
@@ -232,13 +264,13 @@ class Api {
     async getStatus({}, { userId }) {
         const user = await UserModel.findOne(
             { userId },
-            { _id: false, lastVisitAt: true },
+            { _id: false, lastNotificationsViewedAt: true },
             { lean: true }
         );
 
         if (!user) {
             return {
-                hasUnseen: false,
+                unseenCount: 0,
             };
         }
 
@@ -246,39 +278,25 @@ class Api {
             userId,
         };
 
-        if (user.lastVisitAt) {
-            query.createdAt = {
-                $gte: user.lastVisitAt,
+        if (user.lastNotificationsViewedAt) {
+            query.blockTimeCorrected = {
+                $gte: user.lastNotificationsViewedAt,
             };
         }
 
-        const somethingFound = await EventModel.findOne(query, { _id: true }, { lean: true });
+        const count = await EventModel.countDocuments(query);
 
         return {
-            hasUnseen: Boolean(somethingFound),
+            unseenCount: count,
         };
     }
 
-    async markAllAsViewed({}, { userId }) {
+    async markAllAsViewed({ until }, { userId }) {
         await UserModel.updateOne(
             { userId },
             {
                 $set: {
-                    lastVisitAt: new Date(),
-                },
-            }
-        );
-    }
-
-    async markAsRead({ notificationId }, { userId }) {
-        await EventModel.updateOne(
-            {
-                notificationId,
-                userId,
-            },
-            {
-                $set: {
-                    isRead: true,
+                    lastNotificationsViewedAt: new Date(until),
                 },
             }
         );
