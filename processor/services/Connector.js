@@ -55,11 +55,14 @@ class Connector extends BasicConnector {
                     handler: this._api.markAllAsViewed,
                     scope: this._api,
                     requireAuth: true,
-                },
-                markAsRead: {
-                    handler: this._api.markAsRead,
-                    scope: this._api,
-                    requireAuth: true,
+                    validation: {
+                        required: ['until'],
+                        properties: {
+                            until: {
+                                type: 'string',
+                            },
+                        },
+                    },
                 },
             },
             requiredClients: {
