@@ -7,6 +7,7 @@ const { Logger } = core.utils;
 
 const env = require('../data/env');
 const { getConnector } = require('../utils/processStore');
+const SubscriptionModel = require('../models/Subscription');
 
 const QUEUE_NAME = 'notifications';
 
@@ -48,19 +49,66 @@ class Sender extends Service {
     async _handleNotification({ id, eventType, userId }, msg) {
         this._channel.ack(msg);
 
+        const [tokens, sockets] = await Promise.all([this._getFcm(), this._getSockets()]);
+
+        if (!tokens.length && !sockets.length) {
+            return;
+        }
+
+        const con = getConnector();
+
+        const notification = await con.callService('notifications', 'getNotification', { id });
+
+        if (sockets.length) {
+            try {
+                await this._sendSocketNotification(notification, sockets);
+            } catch (err) {
+                Logger.warn('Notification sending via socket failed:', err);
+            }
+        }
+
+        if (tokens.length) {
+            try {
+                await this._sendPush(notification, tokens);
+            } catch (err) {
+                Logger.warn('Notification sending via push failed:', err);
+            }
+        }
+    }
+
+    async _getFcm(userId) {
         const con = getConnector();
 
         const { tokens } = await con.callService('settings', 'getUserFcmTokens', {
             userId,
         });
 
-        if (!tokens.length) {
-            return;
-        }
+        return tokens.map(({ fcmToken }) => fcmToken);
+    }
 
-        const notification = await con.callService('notifications', 'getNotification', { id });
+    async _getSockets(userId) {
+        const channels = await SubscriptionModel.find({ userId });
 
-        await this._sendPush(notification, tokens.map(({ fcmToken }) => fcmToken));
+        return channels.map(channel => channel.channelId);
+    }
+
+    async _sendSocketNotification(notification, channels) {
+        const con = getConnector();
+
+        await Promise.all(
+            channels.map(async channelId => {
+                try {
+                    await con.callService('gate', 'transfer', {
+                        channelId,
+                        method: 'notifications.newNotification',
+                        result: notification,
+                    });
+                } catch (err) {
+                    Logger.error('Notification send failed:', err);
+                    Logger.error({ channelId });
+                }
+            })
+        );
     }
 
     async _sendPush(notification, tokens) {
