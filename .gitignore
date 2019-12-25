@@ -4,3 +4,4 @@ db
 .env
 .npmrc
 .vscode
+auth-firebase-adminsdk.json
