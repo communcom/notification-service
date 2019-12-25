@@ -8,6 +8,8 @@ class Main extends BasicMain {
     constructor() {
         super(env);
 
+        this.startMongoBeforeBoot();
+
         this.addNested(new Connector(), new Sender());
     }
 }

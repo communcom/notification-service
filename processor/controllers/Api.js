@@ -1,5 +1,6 @@
 const EventModel = require('../models/Event');
 const UserModel = require('../models/User');
+const UserSubscription = require('../../sender/models/Subscription');
 const UserBlockModel = require('../models/UserBlock');
 const CommunityBlockModel = require('../models/CommunityBlock');
 
@@ -311,12 +312,6 @@ class Api {
             }
         );
     }
-
-    async subscribe(params, user, clientInfo) {
-        console.log('Subscribe call:', { params, user, clientInfo });
-    }
-
-    async unsubscribe() {}
 }
 
 module.exports = Api;

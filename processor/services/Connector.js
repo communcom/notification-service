@@ -64,16 +64,6 @@ class Connector extends BasicConnector {
                         },
                     },
                 },
-                subscribe: {
-                    handler: this._api.subscribe,
-                    scope: this._api,
-                    requireAuth: true,
-                },
-                unsubscribe: {
-                    handler: this._api.unsubscribe,
-                    scope: this._api,
-                    requireAuth: true,
-                },
             },
             requiredClients: {
                 prism: env.GLS_PRISM_CONNECT,
