@@ -124,7 +124,9 @@ class Sender extends Service {
     async _sendPush(notification, tokens) {
         const message = {
             tokens,
-            data: JSON.stringify(notification),
+            data: {
+                notification: JSON.stringify(notification),
+            },
             notification: {
                 body: this._extractBody(notification),
             },
