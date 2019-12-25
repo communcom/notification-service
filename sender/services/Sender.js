@@ -104,7 +104,7 @@ class Sender extends Service {
                     await con.callService('gate', 'transfer', {
                         channelId,
                         method: 'notifications.newNotification',
-                        result: notification,
+                        data: notification,
                     });
                 } catch (err) {
                     // 1105 - значит что клиент закрыл соединение
