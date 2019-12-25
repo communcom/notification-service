@@ -238,23 +238,21 @@ class Api {
         if (items.length) {
             const userModels = await UserModel.find(
                 { userId: { $in: [...users] } },
-                { _id: false, userId: true, lastNotificationsViewedAt: true },
+                { _id: false, userId: true, notificationsViewedAt: true },
                 { lean: true }
             );
 
             const usersViewedAt = new Map(
-                userModels.map(({ userId, lastNotificationsViewedAt }) => [
+                userModels.map(({ userId, notificationsViewedAt }) => [
                     userId,
-                    lastNotificationsViewedAt,
+                    notificationsViewedAt,
                 ])
             );
 
             for (const item of items) {
-                const lastNotificationsViewedAt = usersViewedAt.get(item.userId);
+                const notificationsViewedAt = usersViewedAt.get(item.userId);
 
-                item.isNew = lastNotificationsViewedAt
-                    ? item.timestamp > lastNotificationsViewedAt
-                    : true;
+                item.isNew = notificationsViewedAt ? item.timestamp > notificationsViewedAt : true;
             }
         }
 
@@ -264,7 +262,7 @@ class Api {
     async getStatus({}, { userId }) {
         const user = await UserModel.findOne(
             { userId },
-            { _id: false, lastNotificationsViewedAt: true },
+            { _id: false, notificationsViewedAt: true },
             { lean: true }
         );
 
@@ -278,9 +276,9 @@ class Api {
             userId,
         };
 
-        if (user.lastNotificationsViewedAt) {
+        if (user.notificationsViewedAt) {
             query.blockTimeCorrected = {
-                $gte: user.lastNotificationsViewedAt,
+                $gte: user.notificationsViewedAt,
             };
         }
 
@@ -296,7 +294,7 @@ class Api {
             { userId },
             {
                 $set: {
-                    lastNotificationsViewedAt: new Date(until),
+                    notificationsViewedAt: new Date(until),
                 },
             }
         );
