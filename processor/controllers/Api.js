@@ -130,7 +130,7 @@ class Api {
                     initiator: {
                         $let: {
                             vars: {
-                                user: { $arrayElemAt: ['initiator', 0] },
+                                user: { $arrayElemAt: ['$initiator', 0] },
                             },
                             in: {
                                 userId: '$$user.userId',
