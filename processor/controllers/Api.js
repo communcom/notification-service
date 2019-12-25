@@ -1,6 +1,5 @@
 const EventModel = require('../models/Event');
 const UserModel = require('../models/User');
-const UserSubscription = require('../../sender/models/Subscription');
 const UserBlockModel = require('../models/UserBlock');
 const CommunityBlockModel = require('../models/CommunityBlock');
 
