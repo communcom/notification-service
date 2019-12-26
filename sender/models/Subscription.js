@@ -17,6 +17,10 @@ module.exports = MongoDB.makeModel(
             type: String,
             required: true,
         },
+        actualizedAt: {
+            type: Date,
+            required: true,
+        },
     },
     {
         index: [
@@ -35,7 +39,7 @@ module.exports = MongoDB.makeModel(
             },
             {
                 fields: {
-                    createdAt: 1,
+                    actualizedAt: 1,
                 },
             },
         ],

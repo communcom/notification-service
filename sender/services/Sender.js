@@ -102,11 +102,11 @@ class Sender extends Service {
 
         const con = getConnector();
 
-        const { online } = await con.callService('gate', 'checkChannels', {
+        const { connected } = await con.callService('gate', 'checkChannels', {
             channelsIds: channels.map(channel => channel.channelId),
         });
 
-        return online;
+        return connected;
     }
 
     async _sendSocketNotification(notification, channels) {

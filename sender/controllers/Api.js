@@ -14,6 +14,7 @@ class Api {
             userId,
             type,
             channelId: routing.channelId,
+            actualizedAt: new Date(),
         });
     }
 
