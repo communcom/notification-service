@@ -33,6 +33,11 @@ module.exports = MongoDB.makeModel(
                     unique: true,
                 },
             },
+            {
+                fields: {
+                    createdAt: 1,
+                },
+            },
         ],
     }
 );

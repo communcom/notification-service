@@ -90,9 +90,23 @@ class Sender extends Service {
     }
 
     async _getSockets(userId) {
-        const channels = await SubscriptionModel.find({ userId });
+        const channels = await SubscriptionModel.find(
+            { userId },
+            { channelId: true },
+            { lean: true }
+        );
 
-        return channels.map(channel => channel.channelId);
+        if (!channels.length) {
+            return [];
+        }
+
+        const con = getConnector();
+
+        const { online } = await con.callService('gate', 'checkChannels', {
+            channelsIds: channels.map(channel => channel.channelId),
+        });
+
+        return online;
     }
 
     async _sendSocketNotification(notification, channels) {
