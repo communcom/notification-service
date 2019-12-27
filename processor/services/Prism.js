@@ -14,7 +14,14 @@ class Prism extends Service {
         let meta = await MetaModel.findOne();
 
         if (!meta) {
-            meta = await MetaModel.create({});
+            let initialMeta = {};
+
+            if (env.GLS_NATS_START) {
+                initialMeta = JSON.parse(env.GLS_NATS_START);
+                Logger.info('Set meta data to:', initialMeta);
+            }
+
+            meta = await MetaModel.create(initialMeta);
         }
 
         this._lastNotificationBlockNum = meta.lastNotificationBlockNum || 0;
