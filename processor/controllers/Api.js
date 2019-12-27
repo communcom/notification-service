@@ -300,7 +300,7 @@ class Api {
                         notificationsViewedAt: { $lt: date },
                     },
                     {
-                        notificationsViewedAt: { $not: { $exists: true } },
+                        notificationsViewedAt: { $eq: null },
                     },
                 ],
             },
