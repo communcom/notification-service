@@ -74,7 +74,10 @@ class Prism extends Service {
 
                 const notifications = await this._handleBlock(data);
                 await this._setLastBlock(data);
-                await this._processNotifications(notifications, data);
+
+                if (!env.GLS_DISABLE_SENDING) {
+                    await this._processNotifications(notifications, data);
+                }
                 break;
             case BlockSubscribe.EVENT_TYPES.IRREVERSIBLE_BLOCK:
                 await this._handleIrreversibleBlock(data);
