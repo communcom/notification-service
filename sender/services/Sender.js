@@ -80,33 +80,43 @@ class Sender extends Service {
     }
 
     async _getFcm(userId) {
-        const con = getConnector();
+        try {
+            const con = getConnector();
 
-        const { tokens } = await con.callService('settings', 'getUserFcmTokens', {
-            userId,
-        });
+            const { tokens } = await con.callService('settings', 'getUserFcmTokens', {
+                userId,
+            });
 
-        return tokens.map(({ fcmToken }) => fcmToken);
+            return tokens.map(({ fcmToken }) => fcmToken);
+        } catch (err) {
+            Logger.error('settings.getUserFcmTokens failed:', err);
+            return [];
+        }
     }
 
     async _getSockets(userId) {
-        const channels = await SubscriptionModel.find(
-            { userId },
-            { channelId: true },
-            { lean: true }
-        );
+        try {
+            const channels = await SubscriptionModel.find(
+                { userId },
+                { channelId: true },
+                { lean: true }
+            );
 
-        if (!channels.length) {
+            if (!channels.length) {
+                return [];
+            }
+
+            const con = getConnector();
+
+            const { connected } = await con.callService('gate', 'checkChannels', {
+                channelsIds: channels.map(channel => channel.channelId),
+            });
+
+            return connected;
+        } catch (err) {
+            Logger.error('gate.checkChannels failed:', err);
             return [];
         }
-
-        const con = getConnector();
-
-        const { connected } = await con.callService('gate', 'checkChannels', {
-            channelsIds: channels.map(channel => channel.channelId),
-        });
-
-        return connected;
     }
 
     async _sendSocketNotification(notification, channels) {
