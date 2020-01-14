@@ -277,8 +277,9 @@ class Prism {
 
             replySentToUserId = await this._processReply(comment, {
                 actionInfo,
-                info,
+                communityId,
                 messageId,
+                info,
             });
         }
 
@@ -400,7 +401,7 @@ class Prism {
         );
     }
 
-    async _processReply(comment, { actionInfo, info, messageId }) {
+    async _processReply(comment, { actionInfo, communityId, info, messageId }) {
         const { parents } = comment;
 
         // process only top level comments
