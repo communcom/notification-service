@@ -403,42 +403,47 @@ class Prism {
     async _processReply(comment, { actionInfo, info, messageId }) {
         const { parents } = comment;
 
-        if (!parents.comment) {
-            const { userId } = parents.post;
-
-            try {
-                await this._checkUser(userId);
-            } catch {
-                return;
-            }
-
-            const { blockNum, blockTime, blockTimeCorrected, actionId, notifications } = actionInfo;
-
-            const id = makeId(actionId, 'reply', userId);
-
-            await EventModel.create({
-                id,
-                eventType: 'reply',
-                communityId,
-                publicationId: info.id,
-                userId,
-                initiatorUserId: messageId.userId,
-                blockNum,
-                blockTime,
-                blockTimeCorrected,
-                data: {},
-            });
-
-            notifications.push({
-                id,
-                eventType: 'reply',
-                userId,
-            });
-
-            return userId;
+        // process only top level comments
+        if (parents.comment) {
+            return;
         }
 
-        return null;
+        const { userId } = parents.post;
+
+        if (userId === comment.author.userId) {
+            return;
+        }
+
+        try {
+            await this._checkUser(userId);
+        } catch {
+            return;
+        }
+
+        const { blockNum, blockTime, blockTimeCorrected, actionId, notifications } = actionInfo;
+
+        const id = makeId(actionId, 'reply', userId);
+
+        await EventModel.create({
+            id,
+            eventType: 'reply',
+            communityId,
+            publicationId: info.id,
+            userId,
+            initiatorUserId: messageId.userId,
+            blockNum,
+            blockTime,
+            blockTimeCorrected,
+            data: {},
+        });
+
+        notifications.push({
+            id,
+            eventType: 'reply',
+            userId,
+        });
+
+        return userId;
     }
 
     async _processMentions({
