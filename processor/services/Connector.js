@@ -30,6 +30,13 @@ class Connector extends BasicConnector {
                                 type: 'number',
                                 default: 20,
                             },
+                            filter: {
+                                type: 'array',
+                                items: {
+                                    type: 'string',
+                                    enum: ['all', 'mention', 'reply', 'subscribe', 'upvote'],
+                                },
+                            }
                         },
                     },
                 },

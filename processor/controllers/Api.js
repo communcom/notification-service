@@ -4,7 +4,14 @@ const UserBlockModel = require('../models/UserBlock');
 const CommunityBlockModel = require('../models/CommunityBlock');
 
 class Api {
-    async getNotifications({ beforeThan, limit }, { userId }) {
+    async getNotifications({ beforeThan, limit, filter }, { userId }) {
+        if (filter && filter.length === 0) {
+            return {
+                items: [],
+                lastNotificationTimestamp: null,
+            };
+        }
+
         const blockingUsers = await UserBlockModel.find(
             { userId },
             { _id: false, blockUserId: true },
@@ -25,6 +32,12 @@ class Api {
         const match = {
             userId,
         };
+
+        if (filter && !filter.includes('all')) {
+            match.eventType = {
+                $in: filter,
+            };
+        }
 
         if (blockingUsers.length) {
             match.initiatorUserId = {
