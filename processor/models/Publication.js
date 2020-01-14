@@ -24,6 +24,9 @@ module.exports = MongoDB.makeModel(
         parents: {
             type: Object,
         },
+        replySentToUserId: {
+            type: String,
+        },
         mentioned: [
             {
                 type: String,

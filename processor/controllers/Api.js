@@ -203,6 +203,7 @@ class Api {
                     break;
 
                 case 'mention':
+                case 'reply':
                     data = {
                         author: event.initiator,
                     };
@@ -217,7 +218,7 @@ class Api {
                 default:
             }
 
-            if (eventType === 'mention' || eventType === 'upvote') {
+            if (eventType === 'mention' || eventType === 'upvote' || eventType === 'reply') {
                 if (!event.entry) {
                     throw new Error('Entry not found');
                 }
