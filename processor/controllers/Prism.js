@@ -293,6 +293,10 @@ class Prism {
         });
 
         try {
+            if (!entity.author.username) {
+                Logger.error('Entity without author username:', entity);
+            }
+
             await PublicationModel.create({
                 ...info,
                 type: comment ? 'comment' : 'post',
