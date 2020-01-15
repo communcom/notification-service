@@ -64,7 +64,23 @@ class Sender extends Service {
 
         if (sockets.length) {
             try {
-                await this._sendSocketNotification(notification, sockets);
+                const status = await con.callService('notifications', 'getStatusSystem', {
+                    userId,
+                });
+
+                await this._sendSocketNotification(
+                    { method: 'notifications.statusUpdated', data: status },
+                    sockets
+                );
+            } catch (err) {
+                Logger.warn('Sending statusUpdated event failed:', err);
+            }
+
+            try {
+                await this._sendSocketNotification(
+                    { method: 'notifications.newNotification', data: notification },
+                    sockets
+                );
             } catch (err) {
                 Logger.warn('Notification sending via socket failed:', err);
             }
@@ -119,20 +135,22 @@ class Sender extends Service {
         }
     }
 
-    async _sendSocketNotification(notification, channels) {
+    async _sendSocketNotification({ method, data }, channels) {
         const con = getConnector();
+        const closedChannels = new Set();
 
         await Promise.all(
             channels.map(async channelId => {
                 try {
                     await con.callService('gate', 'transfer', {
                         channelId,
-                        method: 'notifications.newNotification',
-                        data: notification,
+                        method,
+                        data,
                     });
                 } catch (err) {
                     // 1105 - значит что клиент закрыл соединение
                     if (err.code === 1105) {
+                        closedChannels.add(channelId);
                         SubscriptionModel.deleteOne({
                             channelId,
                         }).catch(() => {});
@@ -143,6 +161,16 @@ class Sender extends Service {
                 }
             })
         );
+
+        if (closedChannels.size) {
+            for (let i = channels.length - 1; i >= 0; i--) {
+                const channelId = channels[i];
+
+                if (closedChannels.has(channelId)) {
+                    channels.splice(i, 1);
+                }
+            }
+        }
     }
 
     async _sendPush(notification, tokens) {

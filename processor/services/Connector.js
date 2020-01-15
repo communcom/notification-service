@@ -36,7 +36,7 @@ class Connector extends BasicConnector {
                                     type: 'string',
                                     enum: ['all', 'mention', 'reply', 'subscribe', 'upvote'],
                                 },
-                            }
+                            },
                         },
                     },
                 },
@@ -57,6 +57,18 @@ class Connector extends BasicConnector {
                     handler: this._api.getStatus,
                     scope: this._api,
                     requireAuth: true,
+                },
+                getStatusSystem: {
+                    handler: this._api.getStatusSystem,
+                    scope: this._api,
+                    validation: {
+                        required: ['userId'],
+                        properties: {
+                            userId: {
+                                type: 'string',
+                            },
+                        },
+                    },
                 },
                 markAllAsViewed: {
                     handler: this._api.markAllAsViewed,

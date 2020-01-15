@@ -274,6 +274,14 @@ class Api {
     }
 
     async getStatus({}, { userId }) {
+        return await this._getStatus(userId);
+    }
+
+    async getStatusSystem({ userId }) {
+        return await this._getStatus(userId);
+    }
+
+    async _getStatus(userId) {
         const user = await UserModel.findOne(
             { userId },
             { _id: false, notificationsViewedAt: true },
