@@ -183,6 +183,9 @@ class Sender extends Service {
             case 'mention':
                 return `${notification.author.username} mentioned you in a ${notification.entityType}: “${entry.shortText}”`;
 
+            case 'reply':
+                return `${notification.author.username} left a comment: “${entry.shortText}”`;
+
             case 'subscribe':
                 return `${notification.user.username} is following you`;
 
