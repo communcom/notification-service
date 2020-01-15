@@ -60,6 +60,10 @@ class Sender extends Service {
 
         const con = getConnector();
 
+        const settings = await con.callService('settings', 'getAllNotificationsSettings', {
+            userId,
+        });
+
         const notification = await con.callService('notifications', 'getNotification', { id });
 
         if (sockets.length) {
@@ -77,16 +81,32 @@ class Sender extends Service {
             }
 
             try {
-                await this._sendSocketNotification(
-                    { method: 'notifications.newNotification', data: notification },
-                    sockets
-                );
+                const passSockets = sockets.filter(({ channelId, type }) => {
+                    const disabledTypes =
+                        type === 'web' ? settings.webDisabled : settings.pushDisabled;
+
+                    return (
+                        !disabledTypes.includes('all') &&
+                        !disabledTypes.includes(notification.eventType)
+                    );
+                });
+
+                if (passSockets.length) {
+                    await this._sendSocketNotification(
+                        { method: 'notifications.newNotification', data: notification },
+                        passSockets
+                    );
+                }
             } catch (err) {
                 Logger.warn('Notification sending via socket failed:', err);
             }
         }
 
-        if (tokens.length) {
+        if (
+            tokens.length &&
+            !settings.pushDisabled.includes('all') &&
+            !settings.pushDisabled.includes(notification.eventType)
+        ) {
             try {
                 await this._sendPush(notification, tokens);
             } catch (err) {
@@ -114,7 +134,7 @@ class Sender extends Service {
         try {
             const channels = await SubscriptionModel.find(
                 { userId },
-                { channelId: true },
+                { channelId: true, type: true },
                 { lean: true }
             );
 
@@ -128,7 +148,9 @@ class Sender extends Service {
                 channelsIds: channels.map(channel => channel.channelId),
             });
 
-            return connected;
+            return connected.map(channelId =>
+                channels.find(channel => channel.channelId === channelId)
+            );
         } catch (err) {
             Logger.error('gate.checkChannels failed:', err);
             return [];
@@ -140,7 +162,7 @@ class Sender extends Service {
         const closedChannels = new Set();
 
         await Promise.all(
-            channels.map(async channelId => {
+            channels.map(async ({ channelId }) => {
                 try {
                     await con.callService('gate', 'transfer', {
                         channelId,
@@ -164,7 +186,7 @@ class Sender extends Service {
 
         if (closedChannels.size) {
             for (let i = channels.length - 1; i >= 0; i--) {
-                const channelId = channels[i];
+                const { channelId } = channels[i];
 
                 if (closedChannels.has(channelId)) {
                     channels.splice(i, 1);
