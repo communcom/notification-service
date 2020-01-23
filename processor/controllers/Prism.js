@@ -269,15 +269,34 @@ class Prism {
 
         const info = extractPublicationInfo(entity);
 
+        let parents = null;
+        let replySentToUserId = null;
+
+        if (comment) {
+            parents = await this._processParents(comment);
+
+            replySentToUserId = await this._processReply(comment, {
+                actionInfo,
+                communityId,
+                messageId,
+                info,
+            });
+        }
+
         const mentioned = await this._processMentions({
             actionInfo,
             communityId,
             messageId,
             author,
             info,
+            replySentToUserId,
         });
 
         try {
+            if (!entity.author.username) {
+                Logger.error('Entity without author username:', entity);
+            }
+
             await PublicationModel.create({
                 ...info,
                 type: comment ? 'comment' : 'post',
@@ -285,9 +304,10 @@ class Prism {
                     ...entity.contentId,
                     username: entity.author.username,
                 },
-                parents: comment ? await this._processParents(comment) : null,
+                parents,
                 mentioned,
                 blockNum,
+                replySentToUserId,
             });
         } catch (err) {
             if (err.code === 11000) {
@@ -355,6 +375,7 @@ class Prism {
             messageId,
             author,
             info,
+            replySentToUserId: publication.replySentToUserId,
             alreadyMentioned: publication.mentioned,
         });
 
@@ -384,7 +405,61 @@ class Prism {
         );
     }
 
-    async _processMentions({ actionInfo, communityId, messageId, author, info, alreadyMentioned }) {
+    async _processReply(comment, { actionInfo, communityId, info, messageId }) {
+        const { parents } = comment;
+
+        // process only top level comments
+        if (parents.comment) {
+            return;
+        }
+
+        const { userId } = parents.post;
+
+        if (userId === comment.author.userId) {
+            return;
+        }
+
+        try {
+            await this._checkUser(userId);
+        } catch {
+            return;
+        }
+
+        const { blockNum, blockTime, blockTimeCorrected, actionId, notifications } = actionInfo;
+
+        const id = makeId(actionId, 'reply', userId);
+
+        await EventModel.create({
+            id,
+            eventType: 'reply',
+            communityId,
+            publicationId: info.id,
+            userId,
+            initiatorUserId: messageId.userId,
+            blockNum,
+            blockTime,
+            blockTimeCorrected,
+            data: {},
+        });
+
+        notifications.push({
+            id,
+            eventType: 'reply',
+            userId,
+        });
+
+        return userId;
+    }
+
+    async _processMentions({
+        actionInfo,
+        communityId,
+        messageId,
+        author,
+        info,
+        replySentToUserId,
+        alreadyMentioned,
+    }) {
         const { blockNum, blockTime, blockTimeCorrected, actionId, notifications } = actionInfo;
         const mentioned = new Set(alreadyMentioned || []);
 
@@ -399,39 +474,41 @@ class Prism {
                 { lean: true }
             );
 
-            if (mentionedUser) {
-                if (
-                    await this._checkUserBlock(mentionedUser.userId, {
-                        communityId,
-                        userId: author.userId,
-                    })
-                ) {
-                    continue;
-                }
-
-                const id = makeId(actionId, 'mention', mentionedUser.userId);
-
-                await EventModel.create({
-                    id,
-                    eventType: 'mention',
-                    communityId,
-                    publicationId: info.id,
-                    userId: mentionedUser.userId,
-                    initiatorUserId: messageId.userId,
-                    blockNum,
-                    blockTime,
-                    blockTimeCorrected,
-                    data: {},
-                });
-
-                notifications.push({
-                    id,
-                    eventType: 'mention',
-                    userId: mentionedUser.userId,
-                });
-
-                mentioned.add(username);
+            if (!mentionedUser || mentionedUser.userId === replySentToUserId) {
+                continue;
             }
+
+            if (
+                await this._checkUserBlock(mentionedUser.userId, {
+                    communityId,
+                    userId: author.userId,
+                })
+            ) {
+                continue;
+            }
+
+            const id = makeId(actionId, 'mention', mentionedUser.userId);
+
+            await EventModel.create({
+                id,
+                eventType: 'mention',
+                communityId,
+                publicationId: info.id,
+                userId: mentionedUser.userId,
+                initiatorUserId: messageId.userId,
+                blockNum,
+                blockTime,
+                blockTimeCorrected,
+                data: {},
+            });
+
+            notifications.push({
+                id,
+                eventType: 'mention',
+                userId: mentionedUser.userId,
+            });
+
+            mentioned.add(username);
         }
 
         return [...mentioned];
@@ -647,6 +724,7 @@ class Prism {
                 imageUrl: isExtended || undefined,
                 mentions: isExtended || undefined,
                 mentioned: isExtended || undefined,
+                replySentToUserId: isExtended || undefined,
             },
             {
                 lean: true,

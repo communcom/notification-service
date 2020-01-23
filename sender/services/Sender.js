@@ -7,6 +7,7 @@ const { Logger } = core.utils;
 
 const env = require('../data/env');
 const { getConnector } = require('../utils/processStore');
+const SubscriptionModel = require('../models/Subscription');
 
 const QUEUE_NAME = 'notifications';
 
@@ -48,25 +49,158 @@ class Sender extends Service {
     async _handleNotification({ id, eventType, userId }, msg) {
         this._channel.ack(msg);
 
-        const con = getConnector();
+        const [tokens, sockets] = await Promise.all([
+            this._getFcm(userId),
+            this._getSockets(userId),
+        ]);
 
-        const { tokens } = await con.callService('settings', 'getUserFcmTokens', {
-            userId,
-        });
-
-        if (!tokens.length) {
+        if (!tokens.length && !sockets.length) {
             return;
         }
 
+        const con = getConnector();
+
+        const settings = await con.callService('settings', 'getAllNotificationsSettings', {
+            userId,
+        });
+
         const notification = await con.callService('notifications', 'getNotification', { id });
 
-        await this._sendPush(notification, tokens.map(({ fcmToken }) => fcmToken));
+        if (sockets.length) {
+            try {
+                const status = await con.callService('notifications', 'getStatusSystem', {
+                    userId,
+                });
+
+                await this._sendSocketNotification(
+                    { method: 'notifications.statusUpdated', data: status },
+                    sockets
+                );
+            } catch (err) {
+                Logger.warn('Sending statusUpdated event failed:', err);
+            }
+
+            try {
+                const passSockets = sockets.filter(({ channelId, type }) => {
+                    const disabledTypes =
+                        type === 'web' ? settings.webDisabled : settings.pushDisabled;
+
+                    return (
+                        !disabledTypes.includes('all') &&
+                        !disabledTypes.includes(notification.eventType)
+                    );
+                });
+
+                if (passSockets.length) {
+                    await this._sendSocketNotification(
+                        { method: 'notifications.newNotification', data: notification },
+                        passSockets
+                    );
+                }
+            } catch (err) {
+                Logger.warn('Notification sending via socket failed:', err);
+            }
+        }
+
+        if (
+            tokens.length &&
+            !settings.pushDisabled.includes('all') &&
+            !settings.pushDisabled.includes(notification.eventType)
+        ) {
+            try {
+                await this._sendPush(notification, tokens);
+            } catch (err) {
+                Logger.warn('Notification sending via push failed:', err);
+            }
+        }
+    }
+
+    async _getFcm(userId) {
+        try {
+            const con = getConnector();
+
+            const { tokens } = await con.callService('settings', 'getUserFcmTokens', {
+                userId,
+            });
+
+            return tokens.map(({ fcmToken }) => fcmToken);
+        } catch (err) {
+            Logger.error('settings.getUserFcmTokens failed:', err);
+            return [];
+        }
+    }
+
+    async _getSockets(userId) {
+        try {
+            const channels = await SubscriptionModel.find(
+                { userId },
+                { channelId: true, type: true },
+                { lean: true }
+            );
+
+            if (!channels.length) {
+                return [];
+            }
+
+            const con = getConnector();
+
+            const { connected } = await con.callService('gate', 'checkChannels', {
+                channelsIds: channels.map(channel => channel.channelId),
+            });
+
+            return connected.map(channelId =>
+                channels.find(channel => channel.channelId === channelId)
+            );
+        } catch (err) {
+            Logger.error('gate.checkChannels failed:', err);
+            return [];
+        }
+    }
+
+    async _sendSocketNotification({ method, data }, channels) {
+        const con = getConnector();
+        const closedChannels = new Set();
+
+        await Promise.all(
+            channels.map(async ({ channelId }) => {
+                try {
+                    await con.callService('gate', 'transfer', {
+                        channelId,
+                        method,
+                        data,
+                    });
+                } catch (err) {
+                    // 1105 - значит что клиент закрыл соединение
+                    if (err.code === 1105) {
+                        closedChannels.add(channelId);
+                        SubscriptionModel.deleteOne({
+                            channelId,
+                        }).catch(() => {});
+                        return;
+                    }
+
+                    Logger.error(`Notification to channel: (${channelId}) failed:`, err);
+                }
+            })
+        );
+
+        if (closedChannels.size) {
+            for (let i = channels.length - 1; i >= 0; i--) {
+                const { channelId } = channels[i];
+
+                if (closedChannels.has(channelId)) {
+                    channels.splice(i, 1);
+                }
+            }
+        }
     }
 
     async _sendPush(notification, tokens) {
         const message = {
             tokens,
-            data: notification,
+            data: {
+                notification: JSON.stringify(notification),
+            },
             notification: {
                 body: this._extractBody(notification),
             },
@@ -99,8 +233,11 @@ class Sender extends Service {
             case 'mention':
                 return `${notification.author.username} mentioned you in a ${notification.entityType}: “${entry.shortText}”`;
 
+            case 'reply':
+                return `${notification.author.username} left a comment: “${entry.shortText}”`;
+
             case 'subscribe':
-                return `${notification.use.username} is following you`;
+                return `${notification.user.username} is following you`;
 
             default:
                 Logger.error(

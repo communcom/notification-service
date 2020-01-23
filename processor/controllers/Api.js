@@ -4,7 +4,14 @@ const UserBlockModel = require('../models/UserBlock');
 const CommunityBlockModel = require('../models/CommunityBlock');
 
 class Api {
-    async getNotifications({ beforeThan, limit }, { userId }) {
+    async getNotifications({ beforeThan, limit, filter }, { userId }) {
+        if (filter && filter.length === 0) {
+            return {
+                items: [],
+                lastNotificationTimestamp: null,
+            };
+        }
+
         const blockingUsers = await UserBlockModel.find(
             { userId },
             { _id: false, blockUserId: true },
@@ -25,6 +32,12 @@ class Api {
         const match = {
             userId,
         };
+
+        if (filter && !filter.includes('all')) {
+            match.eventType = {
+                $in: filter,
+            };
+        }
 
         if (blockingUsers.length) {
             match.initiatorUserId = {
@@ -190,6 +203,7 @@ class Api {
                     break;
 
                 case 'mention':
+                case 'reply':
                     data = {
                         author: event.initiator,
                     };
@@ -204,7 +218,7 @@ class Api {
                 default:
             }
 
-            if (eventType === 'mention' || eventType === 'upvote') {
+            if (eventType === 'mention' || eventType === 'upvote' || eventType === 'reply') {
                 if (!event.entry) {
                     throw new Error('Entry not found');
                 }
@@ -260,6 +274,14 @@ class Api {
     }
 
     async getStatus({}, { userId }) {
+        return await this._getStatus(userId);
+    }
+
+    async getStatusSystem({ userId }) {
+        return await this._getStatus(userId);
+    }
+
+    async _getStatus(userId) {
         const user = await UserModel.findOne(
             { userId },
             { _id: false, notificationsViewedAt: true },
@@ -300,7 +322,7 @@ class Api {
                         notificationsViewedAt: { $lt: date },
                     },
                     {
-                        notificationsViewedAt: { $not: { $exists: true } },
+                        notificationsViewedAt: { $eq: null },
                     },
                 ],
             },
