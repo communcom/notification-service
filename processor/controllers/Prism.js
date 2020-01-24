@@ -12,6 +12,12 @@ const { extractAlias, normalizeCommunityName } = require('../utils/community');
 const { getConnector } = require('../utils/processStore');
 const { formatContentId, extractPublicationInfo } = require('../utils/publication');
 
+const IGNORE_USER_ID = ['c.gallery', 'c.point'];
+const POINT_TYPE = {
+    POINT: 'point',
+    TOKEN: 'token',
+};
+
 class NoEntityError extends Error {}
 
 class NoUserError extends NoEntityError {
@@ -89,7 +95,7 @@ class Prism {
         await this._revertTo(baseBlockNum);
     }
 
-    async _processAction(actionInfo, { code, action, args }) {
+    async _processAction(actionInfo, { code, receiver, action, args }) {
         switch (code) {
             case 'cyber.domain':
                 switch (action) {
@@ -149,7 +155,95 @@ class Prism {
                         break;
                     default:
                 }
+
+            case 'c.point':
+                switch (action) {
+                    case 'transfer':
+                        await this._processTransfer(code, actionInfo, args);
+                        break;
+                    default:
+                }
         }
+
+        if (code === 'cyber.token' && receiver === 'cyber.token') {
+            switch (action) {
+                case 'transfer':
+                    await this._processTransfer(code, actionInfo, args);
+                    break;
+                default:
+            }
+        }
+    }
+
+    async _processTransfer(code, actionInfo, { from, to, quantity, memo }) {
+        const pointType = code === 'cyber.token' ? POINT_TYPE.TOKEN : POINT_TYPE.POINT;
+        const [amount, symbol] = quantity.split(' ');
+
+        if (pointType === POINT_TYPE.TOKEN && symbol !== 'CMN') {
+            return;
+        }
+
+        const { blockNum, blockTime, blockTimeCorrected, actionId, notifications } = actionInfo;
+
+        const rewardMatch = memo.match(/^reward for ([0-9]+)$/);
+        if (rewardMatch) {
+            const [_, tracery] = rewardMatch;
+
+            const userId = to;
+            const eventType = 'reward';
+            const id = makeId(actionId, eventType, userId);
+
+            await EventModel.create({
+                id,
+                eventType,
+                communityId: symbol,
+                userId,
+                blockNum,
+                blockTime,
+                blockTimeCorrected,
+                data: {
+                    amount,
+                    tracery,
+                },
+            });
+
+            notifications.push({
+                id,
+                eventType,
+                userId,
+            });
+
+            return;
+        }
+
+        if (IGNORE_USER_ID.includes(from) || IGNORE_USER_ID.includes(to)) {
+            return;
+        }
+
+        const userId = to;
+        const eventType = 'transfer';
+        const id = makeId(actionId, eventType, userId);
+
+        await EventModel.create({
+            id,
+            eventType,
+            communityId: symbol,
+            userId,
+            initiatorUserId: from,
+            blockNum,
+            blockTime,
+            blockTimeCorrected,
+            data: {
+                amount,
+                pointType,
+            },
+        });
+
+        notifications.push({
+            id,
+            eventType,
+            userId,
+        });
     }
 
     async _processNewUser({ blockNum }, { owner: userId, name: username, creator }) {
