@@ -178,7 +178,7 @@ class Api {
             users.add(userId);
 
             if (!event.community.communityId) {
-                if (event.communityId) {
+                if (event.communityId && event.communityId !== 'CMN') {
                     throw new Error('Community is not found');
                 }
 
@@ -215,6 +215,13 @@ class Api {
                     };
                     break;
 
+                case 'transfer':
+                case 'reward':
+                    data = {
+                        from: event.initiator,
+                    };
+                    break;
+
                 default:
             }
 
@@ -237,6 +244,10 @@ class Api {
                 } else {
                     data.post = entry;
                 }
+            }
+
+            if (eventType === 'transfer' || eventType === 'reward') {
+                data = { ...data, ...event.data };
             }
 
             return {
