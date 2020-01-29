@@ -2,11 +2,11 @@ const core = require('cyberway-core-service');
 const { Service, BlockSubscribe } = core.services;
 const { Logger } = core.utils;
 
-const MetaModel = require('../models/Meta');
-const env = require('../data/env');
+const MetaModel = require('../../common/models/Meta');
+const env = require('../../common/data/env');
 const PrismController = require('../controllers/Prism');
 const ForkCleaner = require('../controllers/ForkCleaner');
-const { getConnector, getSender } = require('../utils/processStore');
+const { getConnector, getSender } = require('../utils/globals');
 const { timeout } = require('../utils/timeout');
 
 class Prism extends Service {

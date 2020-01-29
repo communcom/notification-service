@@ -1,4 +1,4 @@
-const UserSubscription = require('../models/Subscription');
+const SubscriptionModel = require('../../common/models/Subscription');
 
 class Api {
     async subscribe({ routing }, { userId }, { platform, clientType }) {
@@ -10,7 +10,7 @@ class Api {
             type = platform;
         }
 
-        await UserSubscription.create({
+        await SubscriptionModel.create({
             userId,
             type,
             channelId: routing.channelId,
@@ -19,7 +19,7 @@ class Api {
     }
 
     async unsubscribe({ routing }) {
-        await UserSubscription.deleteOne({
+        await SubscriptionModel.deleteOne({
             channelId: routing.channelId,
         });
     }

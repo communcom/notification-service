@@ -17,6 +17,25 @@ services:
     env_file:
       - .env
 
+  notification-api:
+    container_name: notification-api-node
+    restart: always
+    depends_on:
+      - notification-mongo
+    build:
+      context: .
+      dockerfile: api.Dockerfile
+    networks:
+      - services-tier
+    ports:
+      - $GLS_CONNECTOR_HOST:$GLS_CONNECTOR_API_PORT:$GLS_CONNECTOR_API_PORT
+      - $GLS_METRICS_HOST:$GLS_METRICS_API_PORT:$GLS_METRICS_API_PORT
+    environment:
+      - GLS_CONNECTOR_PORT=$GLS_CONNECTOR_API_PORT
+      - GLS_METRICS_PORT=$GLS_METRICS_API_PORT
+    env_file:
+      - .env
+
   notification-sender-node:
     container_name: notification-sender-node
     restart: always

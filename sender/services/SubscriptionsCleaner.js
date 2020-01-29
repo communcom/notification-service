@@ -3,7 +3,7 @@ const core = require('cyberway-core-service');
 const { Service } = core.services;
 const { Logger } = core.utils;
 
-const SubscriptionModel = require('../models/Subscription');
+const SubscriptionModel = require('../../common/models/Subscription');
 const { getConnector } = require('../utils/processStore');
 
 const CLEAN_EVERY_MS = 60 * 60 * 1000;

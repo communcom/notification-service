@@ -3,8 +3,8 @@ const { chunk } = require('lodash');
 const core = require('cyberway-core-service');
 const { Service } = core.services;
 
-const env = require('../data/env');
-const { setSender } = require('../utils/processStore');
+const env = require('../../common/data/env');
+const { setSender } = require('../utils/globals');
 
 const QUEUE_NAME = 'notifications';
 

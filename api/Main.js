@@ -2,8 +2,6 @@ const core = require('cyberway-core-service');
 const { BasicMain } = core.services;
 const env = require('../common/data/env');
 const Connector = require('./services/Connector');
-const Prism = require('./services/Prism');
-const Queue = require('./services/Queue');
 
 class Main extends BasicMain {
     constructor() {
@@ -11,7 +9,7 @@ class Main extends BasicMain {
 
         this.startMongoBeforeBoot();
 
-        this.addNested(new Connector(), new Queue(), new Prism());
+        this.addNested(new Connector());
     }
 }
 

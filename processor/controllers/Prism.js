@@ -2,14 +2,14 @@ const crypto = require('crypto');
 const core = require('cyberway-core-service');
 const { Logger } = core.utils;
 
-const EventModel = require('../models/Event');
-const UserModel = require('../models/User');
-const CommunityModel = require('../models/Community');
-const UserBlockModel = require('../models/UserBlock');
-const CommunityBlockModel = require('../models/CommunityBlock');
-const PublicationModel = require('../models/Publication');
+const EventModel = require('../../common/models/Event');
+const UserModel = require('../../common/models/User');
+const CommunityModel = require('../../common/models/Community');
+const UserBlockModel = require('../../common/models/UserBlock');
+const CommunityBlockModel = require('../../common/models/CommunityBlock');
+const PublicationModel = require('../../common/models/Publication');
 const { extractAlias, normalizeCommunityName } = require('../utils/community');
-const { getConnector } = require('../utils/processStore');
+const { getConnector } = require('../utils/globals');
 const { formatContentId, extractPublicationInfo } = require('../utils/publication');
 
 const IGNORE_USER_ID = ['c.gallery', 'c.point'];
