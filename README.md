@@ -82,16 +82,25 @@ Types of notifications:
         "username": "catraed",
         "avatarUrl": "https://img.commun.com/images/42M94z9Lnz4vLtnV983FiJQEEXoM.png"
     },
-    "entityType": "post",
-    "post": {
+    "entityType": "comment",
+    "comment": {
         "contentId": {
-            "communityId": "DESIGN",
-            "userId": "tst1sykkeaax",
-            "permlink": "1576879604",
-            "username": "swift-shondra-dvm"
+            "communityId": "ANIME",
+            "userId": "tst5urobzffe",
+            "permlink": "re-1580204390-1580204508",
+            "username": "glover-willetta-sr"
         },
-        "shortText": "photoshop for windows",
-        "imageUrl": "https://img.commun.com/images/37izAerNbhyYgv1p7We1qzU73ysL.png"
+        "shortText": "@swift-shondra-dvm sdsdsds",
+        "imageUrl": null,
+        "parents": {
+            "post": {
+                "communityId": "ANIME",
+                "userId": "tst1sykkeaax",
+                "permlink": "1580204390",
+                "username": "swift-shondra-dvm"
+            },
+            "comment": null
+        }
     },
     "isNew": false
 }
