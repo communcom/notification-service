@@ -12,15 +12,17 @@ Content:
 
 Types of notifications:
 
--   [subscribe](#type-subscribe)
--   [upvote](#type-upvote)
--   [reply](#type-reply)
--   [mention](#type-mention)
+-   [subscribe](#notification-type-subscribe)
+-   [upvote](#notification-type-upvote)
+-   [reply](#notification-type-reply)
+-   [mention](#notification-type-mention)
+-   [transfer](#notification-type-transfer)
+-   [reward](#notification-type-reward)
 -   list will grow in future...
 
 In examples of API and Events places where one of these notification will be placed replaced by string "NOTIFICATION_STRUCTURE".
 
-#### Type "subscribe"
+#### Notification type "subscribe"
 
 ```json
 {
@@ -37,7 +39,7 @@ In examples of API and Events places where one of these notification will be pla
 }
 ```
 
-#### Type "upvote"
+#### Notification type "upvote"
 
 ```json
 {
@@ -71,7 +73,7 @@ In examples of API and Events places where one of these notification will be pla
 }
 ```
 
-#### Type "reply"
+#### Notification type "reply"
 
 ```json
 {
@@ -114,7 +116,7 @@ In examples of API and Events places where one of these notification will be pla
 }
 ```
 
-#### Type "mention"
+#### Notification type "mention"
 
 ```json
 {
@@ -145,6 +147,45 @@ In examples of API and Events places where one of these notification will be pla
         "imageUrl": "https://img.commun.com/images/37izAerNbhyYgv1p7We1qzU73ysL.png"
     },
     "isNew": false
+}
+```
+
+### Notification type "transfer"
+
+```json
+{
+    "id": "3dc4a428f9ba5d09ba8d8444a74d79cfcaeee7b2",
+    "eventType": "transfer",
+    "timestamp": "2020-01-30T11:04:36.000Z",
+    "userId": "cmn2hkogmnym",
+    "from": {
+        "userId": "carbon12labs",
+        "username": "carbon12labs",
+        "avatarUrl": null
+    },
+    "amount": "96.7580",
+    "pointType": "token",
+    "isNew": false
+}
+```
+
+### Notification type "reward"
+
+```json
+{
+    "id": "cabb18cf06f8743a670de56e3715f7eee31b9e00",
+    "eventType": "reward",
+    "timestamp": "2020-01-30T11:38:12.000Z",
+    "community": {
+        "communityId": "MUSIC",
+        "name": "Music",
+        "alias": "music",
+        "avatarUrl": "https://img.commun.com/images/2eT5QSNQVk4ZRZu6CNVjUiENB9sp.jpg"
+    },
+    "userId": "tst1sykkeaax",
+    "amount": "191.706",
+    "tracery": "1221643747888096466",
+    "isNew": true
 }
 ```
 
