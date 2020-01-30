@@ -1,5 +1,11 @@
 # Notification service
 
+Content:
+
+-   [Notification types](#notification)
+-   [Api](#api)
+-   [Events](#events)
+
 ## Base structures
 
 ### Notification
@@ -11,6 +17,8 @@ Types of notifications:
 -   [reply](#type-reply)
 -   [mention](#type-mention)
 -   list will grow in future...
+
+In examples of API and Events places where one of these notification will be placed replaced by string "NOTIFICATION_STRUCTURE".
 
 #### Type "subscribe"
 
@@ -144,6 +152,8 @@ Types of notifications:
 
 -   [getNotifications](#method-getnotifications)
 -   [getstatus](#method-getstatus)
+-   [subscribe](#method-subscribe)
+-   [unsubscribe](#method-unsubscribe)
 
 ### Method "getNotifications"
 
@@ -200,7 +210,86 @@ Types of notifications:
     "jsonrpc": "2.0",
     "id": 12,
     "result": {
-        "unseenCount": 0
+        "unseenCount": 3
     }
+}
+```
+
+### Method "subscribe"
+
+Запрос:
+
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "notifications.subscribe",
+    "params": {},
+    "id": 13
+}
+```
+
+Ответ:
+
+```json
+{
+    "jsonrpc": "2.0",
+    "id": 13,
+    "result": {
+        "status": "OK"
+    }
+}
+```
+
+### Method "unsubscribe"
+
+Запрос:
+
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "notifications.unsubscribe",
+    "params": {},
+    "id": 14
+}
+```
+
+Ответ:
+
+```json
+{
+    "jsonrpc": "2.0",
+    "id": 14,
+    "result": {
+        "status": "OK"
+    }
+}
+```
+
+## Events
+
+List of events:
+
+-   [statusUpdated](#event-statusupdated)
+-   [newNotification](#event-newnotification)
+
+### Event "statusUpdated"
+
+```json
+{
+    "method": "notifications.statusUpdated",
+    "jsonrpc": "2.0",
+    "params": {
+        "unseenCount": 3
+    }
+}
+```
+
+### Event "newNotification"
+
+```json
+{
+    "method": "notifications.newNotification",
+    "jsonrpc": "2.0",
+    "params": "<NOTIFICATION_STRUCTURE>"
 }
 ```
