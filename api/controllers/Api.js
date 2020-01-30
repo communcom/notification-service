@@ -186,11 +186,19 @@ class Api {
             }
 
             if (!event.initiator.userId) {
-                if (event.initiatorUserId) {
-                    throw new Error('User is not found');
-                }
+                if (event.initiatorUserId && (eventType === 'transfer' || eventType === 'reward')) {
+                    event.initiator = {
+                        userId: event.initiatorUserId,
+                        username: null,
+                        avatarUrl: null,
+                    };
+                } else {
+                    if (event.initiatorUserId) {
+                        throw new Error('Initiator user is not found');
+                    }
 
-                delete event.initiator;
+                    delete event.initiator;
+                }
             }
 
             let data = null;
