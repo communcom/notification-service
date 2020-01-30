@@ -7,7 +7,7 @@ const { Logger } = core.utils;
 
 const env = require('../data/env');
 const { getConnector } = require('../utils/processStore');
-const SubscriptionModel = require('../models/Subscription');
+const SubscriptionModel = require('../../common/models/Subscription');
 
 const QUEUE_NAME = 'notifications';
 

@@ -1,9 +1,9 @@
 const core = require('cyberway-core-service');
 const { Logger } = core.utils;
 
-const UserModel = require('../models/User');
-const CommunityModel = require('../models/Community');
-const PublicationModel = require('../models/Publication');
+const UserModel = require('../../common/models/User');
+const CommunityModel = require('../../common/models/Community');
+const PublicationModel = require('../../common/models/Publication');
 
 class ForkCleaner {
     async clearRevertData(blockNum) {

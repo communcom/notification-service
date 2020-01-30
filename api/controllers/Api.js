@@ -1,7 +1,7 @@
-const EventModel = require('../models/Event');
-const UserModel = require('../models/User');
-const UserBlockModel = require('../models/UserBlock');
-const CommunityBlockModel = require('../models/CommunityBlock');
+const EventModel = require('../../common/models/Event');
+const UserModel = require('../../common/models/User');
+const UserBlockModel = require('../../common/models/UserBlock');
+const CommunityBlockModel = require('../../common/models/CommunityBlock');
 
 class Api {
     async getNotifications({ beforeThan, limit, filter }, { userId }) {
