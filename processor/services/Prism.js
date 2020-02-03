@@ -9,6 +9,8 @@ const ForkCleaner = require('../controllers/ForkCleaner');
 const { getConnector, getSender } = require('../utils/globals');
 const { timeout } = require('../utils/timeout');
 
+const ONLINE_NOTIFY_MAX_GAP = 10 * 60 * 1000;
+
 class Prism extends Service {
     async start() {
         let meta = await MetaModel.findOne();
@@ -134,7 +136,9 @@ class Prism extends Service {
                 }
             );
 
-            await getSender().processNotifications(notifications, block.blockTime);
+            if (new Date(block.blockTime).getTime() >= Date.now() - ONLINE_NOTIFY_MAX_GAP) {
+                await getSender().processNotifications(notifications, block.blockTime);
+            }
         }
     }
 
