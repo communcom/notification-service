@@ -155,6 +155,7 @@ class Prism {
                         break;
                     default:
                 }
+                break;
 
             case 'c.point':
                 switch (action) {
