@@ -615,7 +615,11 @@ class Prism {
     ) {
         const messageId = normalizeMessageId(message_id, communityId);
 
-        await Promise.all([this._checkCommunity(communityId), this._checkUser(messageId.userId)]);
+        await Promise.all([
+            this._checkCommunity(communityId),
+            this._checkUser(messageId.userId),
+            this._checkPublication(messageId),
+        ]);
 
         if (await this._checkUserBlock(messageId.userId, { communityId, userId: voter })) {
             return;
