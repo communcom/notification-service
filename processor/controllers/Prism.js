@@ -811,20 +811,25 @@ class Prism {
     }
 
     async _checkPublication(contentId, isExtended) {
+        const projection = {
+            _id: true,
+            id: true,
+        };
+
+        if (isExtended) {
+            projection.type = true;
+            projection.shortText = true;
+            projection.imageUrl = true;
+            projection.mentions = true;
+            projection.mentioned = true;
+            projection.replySentToUserId = true;
+        }
+
         const publication = await PublicationModel.findOne(
             {
                 id: formatContentId(contentId),
             },
-            {
-                _id: true,
-                id: true,
-                type: isExtended || undefined,
-                shortText: isExtended || undefined,
-                imageUrl: isExtended || undefined,
-                mentions: isExtended || undefined,
-                mentioned: isExtended || undefined,
-                replySentToUserId: isExtended || undefined,
-            },
+            projection,
             {
                 lean: true,
             }
