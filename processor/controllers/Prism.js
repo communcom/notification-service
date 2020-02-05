@@ -18,6 +18,11 @@ const POINT_TYPE = {
     TOKEN: 'token',
 };
 
+const VOTE_LEADER_TYPE = {
+    VOTE: 'vote',
+    UNVOTE: 'unvote',
+};
+
 class NoEntityError extends Error {}
 
 class NoUserError extends NoEntityError {
@@ -164,6 +169,19 @@ class Prism {
                         break;
                     default:
                 }
+
+            case 'c.ctrl':
+                switch (action) {
+                    case 'voteleader':
+                        await this._processVoteLeader(actionInfo, args, VOTE_LEADER_TYPE.VOTE);
+                        break;
+                    /* enable if needed
+                    case 'unvotelead':
+                        await this._processVoteLeader(actionInfo, args, VOTE_LEADER_TYPE.UNVOTE);
+                        break;
+                    */
+                    default:
+                }
         }
 
         if (code === 'cyber.token' && receiver === 'cyber.token') {
@@ -174,6 +192,39 @@ class Prism {
                 default:
             }
         }
+    }
+
+    async _processVoteLeader(
+        { blockNum, blockTime, blockTimeCorrected, actionId, notifications },
+        { commun_code: communityId, leader: userId, voter },
+        type
+    ) {
+        if (!communityId) {
+            return;
+        }
+
+        const eventType = type === VOTE_LEADER_TYPE.VOTE ? 'voteleader' : 'unvoteleader';
+        const id = makeId(actionId, eventType, userId);
+
+        await EventModel.create({
+            id,
+            eventType,
+            communityId,
+            userId,
+            initiatorUserId: voter,
+            blockNum,
+            blockTime,
+            blockTimeCorrected,
+            data: {
+                voter,
+            },
+        });
+
+        notifications.push({
+            id,
+            eventType,
+            userId,
+        });
     }
 
     async _processTransfer(code, actionInfo, { from, to, quantity, memo }) {
