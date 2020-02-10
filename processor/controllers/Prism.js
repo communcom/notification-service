@@ -169,6 +169,7 @@ class Prism {
                         break;
                     default:
                 }
+                break;
 
             case 'c.ctrl':
                 switch (action) {
@@ -182,6 +183,8 @@ class Prism {
                     */
                     default:
                 }
+                break;
+            default:
         }
 
         if (code === 'cyber.token' && receiver === 'cyber.token') {
@@ -368,7 +371,6 @@ class Prism {
         const { blockNum } = actionInfo;
 
         const messageId = normalizeMessageId(message_id, communityId);
-        const formattedMessageId = formatContentId(messageId);
 
         const [author] = await Promise.all([
             this._checkUser(messageId.userId),
@@ -376,37 +378,21 @@ class Prism {
             parent_id.author ? this._checkUser(parent_id.author) : null,
         ]);
 
-        const con = getConnector();
         let post;
         let comment;
         let entity;
 
-        if (parent_id.author) {
-            try {
-                comment = await con.callService('prismApi', 'getComment', messageId);
+        try {
+            if (parent_id.author) {
+                comment = await this._callPrismSafe('getComment', messageId);
                 entity = comment;
-            } catch (err) {
-                if (err.code === 404) {
-                    // Комментарий был отброшен призмой.
-                    Logger.info(`Comment "${formattedMessageId}" is not found in prism (skip).`);
-                    return;
-                } else {
-                    throw err;
-                }
-            }
-        } else {
-            try {
-                post = await con.callService('prismApi', 'getPost', messageId);
+            } else {
+                post = await this._callPrismSafe('getPost', messageId);
                 entity = post;
-            } catch (err) {
-                if (err.code === 404) {
-                    // Пост был отброшен призмой.
-                    Logger.info(`Post "${formattedMessageId}" is not found in prism (skip).`);
-                    return;
-                } else {
-                    throw err;
-                }
             }
+        } catch (err) {
+            Logger.error('Unknown error from prism:', err);
+            return;
         }
 
         if (!entity) {
@@ -504,14 +490,22 @@ class Prism {
             this._checkCommunity(communityId),
         ]);
 
-        const con = getConnector();
         let post;
         let comment;
 
-        if (publication.type === 'comment') {
-            comment = await con.callService('prismApi', 'getComment', messageId);
-        } else {
-            post = await con.callService('prismApi', 'getPost', messageId);
+        try {
+            if (publication.type === 'comment') {
+                comment = await this._callPrismSafe('getComment', messageId);
+            } else {
+                post = await this._callPrismSafe('getPost', messageId);
+            }
+        } catch (err) {
+            Logger.error('Unknown error from prism:', err);
+            return;
+        }
+
+        if (!comment && !post) {
+            return;
         }
 
         const info = extractPublicationInfo(post || comment);
@@ -952,6 +946,28 @@ class Prism {
                     $pull: { revertLog: { blockNum: { $gte: blockNum } } },
                 }
             );
+        }
+    }
+
+    async _callPrismSafe(method, params) {
+        const con = getConnector();
+
+        try {
+            return await con.callService('prismApi', method, params);
+        } catch (err) {
+            if (err.code === 404) {
+                // Публикация была отброшена призмой.
+                Logger.info(
+                    `Prism entity "${method}" "${JSON.stringify(
+                        params,
+                        null,
+                        2
+                    )}" is not found (skip).`
+                );
+                return null;
+            } else {
+                throw err;
+            }
         }
     }
 }
