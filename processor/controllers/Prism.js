@@ -958,11 +958,7 @@ class Prism {
             if (err.code === 404) {
                 // Публикация была отброшена призмой.
                 Logger.info(
-                    `Prism entity "${method}" "${JSON.stringify(
-                        params,
-                        null,
-                        2
-                    )}" is not found (skip).`
+                    `Prism entity "${method}" "${JSON.stringify(params)}" is not found (skip).`
                 );
                 return null;
             } else {
