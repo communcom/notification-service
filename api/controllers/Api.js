@@ -331,7 +331,15 @@ class Api {
     }
 
     async markAllAsViewed({ until }, { userId }) {
-        const date = new Date(until);
+        const now = new Date();
+        let date = new Date(until);
+
+        if (!date.getTime() || date > now) {
+            Logger.warn(
+                `markAllAsViewed called with invalid timestamp or with date in the future: (${until})`
+            );
+            date = now;
+        }
 
         await UserModel.updateOne(
             {
