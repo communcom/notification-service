@@ -1,4 +1,5 @@
 const EventModel = require('../../common/models/Event');
+const ManagementEventModel = require('../../common/models/ManagementEvent');
 const UserModel = require('../../common/models/User');
 const UserBlockModel = require('../../common/models/UserBlock');
 const CommunityBlockModel = require('../../common/models/CommunityBlock');
@@ -72,6 +73,64 @@ class Api {
             { $limit: limit },
         ]);
 
+        const first = notifications[0];
+
+        return {
+            items: notifications,
+            lastNotificationTimestamp: first ? first.timestamp : null,
+        };
+    }
+
+    async getManagementNotifications({ beforeThan, limit, filter }, { userId }) {
+        if (filter && filter.length === 0) {
+            return {
+                items: [],
+                lastNotificationTimestamp: null,
+            };
+        }
+
+        const match = {
+            userId,
+        };
+
+        if (filter && !filter.includes('all')) {
+            match.eventType = {
+                $in: filter,
+            };
+        }
+
+        if (beforeThan) {
+            const date = new Date(beforeThan);
+
+            if (date.toString() === 'Invalid Date') {
+                throw {
+                    code: 500,
+                    message: 'Invalid "beforeThan" parameter value',
+                };
+            }
+
+            match.blockTimeCorrected = {
+                $lte: date,
+            };
+        }
+
+        const notifications = await ManagementEventModel.aggregate([
+            { $match: match },
+            { $sort: { blockTimeCorrected: -1 } },
+            { $limit: limit },
+            {
+                $project: {
+                    _id: false,
+                    id: true,
+                    eventType: true,
+                    communityId: true,
+                    initiatorUserId: true,
+                    data: true,
+                    timestamp: '$blockTimeCorrected',
+                    userId: true,
+                },
+            },
+        ]);
         const first = notifications[0];
 
         return {
@@ -230,6 +289,12 @@ class Api {
                     };
                     break;
 
+                case 'userBlock':
+                    data = {
+                        blocker: event.initiator,
+                    };
+                    break;
+
                 default:
             }
 
@@ -255,6 +320,10 @@ class Api {
             }
 
             if (eventType === 'transfer' || eventType === 'reward') {
+                data = { ...data, ...event.data };
+            }
+
+            if (eventType === 'banPost') {
                 data = { ...data, ...event.data };
             }
 

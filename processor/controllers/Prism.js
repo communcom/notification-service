@@ -3,11 +3,13 @@ const core = require('cyberway-core-service');
 const { Logger } = core.utils;
 
 const EventModel = require('../../common/models/Event');
+const ManagementEventModel = require('../../common/models/ManagementEvent');
 const UserModel = require('../../common/models/User');
 const CommunityModel = require('../../common/models/Community');
 const UserBlockModel = require('../../common/models/UserBlock');
 const CommunityBlockModel = require('../../common/models/CommunityBlock');
 const PublicationModel = require('../../common/models/Publication');
+const ProposalModel = require('../../common/models/Proposals');
 const { extractAlias, normalizeCommunityName } = require('../utils/community');
 const { getConnector } = require('../utils/globals');
 const { formatContentId, extractPublicationInfo } = require('../utils/publication');
@@ -140,6 +142,12 @@ class Prism {
                     case 'upvote':
                         await this._processUpvote(actionInfo, args);
                         break;
+                    case 'ban':
+                        await this._processBanPost(actionInfo, args);
+                        break;
+                    case 'report':
+                        await this._processReport(actionInfo, args);
+                        break;
                     default:
                 }
                 break;
@@ -180,6 +188,15 @@ class Prism {
                         await this._processVoteLeader(actionInfo, args, VOTE_LEADER_TYPE.UNVOTE);
                         break;
                     */
+                    case 'propose':
+                        await this._processNewProposal(actionInfo, args);
+                        break;
+                    case 'approve':
+                        await this._processApproveProposal(actionInfo, args);
+                        break;
+                    case 'exec':
+                        await this._processExecProposal(actionInfo, args);
+                        break;
                     default:
                 }
         }
@@ -203,7 +220,7 @@ class Prism {
             return;
         }
 
-        const eventType = type === VOTE_LEADER_TYPE.VOTE ? 'voteleader' : 'unvoteleader';
+        const eventType = type === VOTE_LEADER_TYPE.VOTE ? 'voteLeader' : 'unvoteLeader';
         const id = makeId(actionId, eventType, userId);
 
         await EventModel.create({
@@ -728,7 +745,10 @@ class Prism {
         });
     }
 
-    async _processUserBlock({ blockNum }, { blocker, blocking }) {
+    async _processUserBlock(
+        { blockNum, blockTime, blockTimeCorrected, actionId, notifications },
+        { blocker, blocking }
+    ) {
         try {
             await UserBlockModel.create({
                 userId: blocker,
@@ -739,6 +759,104 @@ class Prism {
             if (err.code !== 11000) {
                 throw err;
             }
+        }
+
+        const eventType = 'userBlock';
+        const id = makeId(actionId, eventType, blocking);
+
+        await EventModel.create({
+            id,
+            eventType,
+            userId: blocking,
+            initiatorUserId: blocker,
+            blockNum,
+            blockTime,
+            blockTimeCorrected,
+            data: {},
+        });
+
+        notifications.push({
+            id,
+            eventType,
+            userId: blocking,
+        });
+    }
+
+    async _processBanPost(
+        { blockNum, blockTime, blockTimeCorrected, actionId, notifications },
+        { commun_code: communityId, message_id }
+    ) {
+        const { author: userId, permlink } = message_id;
+        const messageId = normalizeMessageId(message_id, communityId);
+
+        const eventType = 'banPost';
+        const id = makeId(actionId, eventType, userId);
+
+        await EventModel.create({
+            id,
+            eventType,
+            communityId,
+            userId,
+            publicationId: formatContentId(messageId),
+            blockNum,
+            blockTime,
+            blockTimeCorrected,
+            data: {
+                permlink,
+            },
+        });
+
+        notifications.push({
+            id,
+            eventType,
+            userId,
+        });
+    }
+
+    async _processReport(
+        { blockNum, blockTime, blockTimeCorrected, actionId, notifications },
+        { commun_code: communityId, reporter, message_id, reason }
+    ) {
+        if (!communityId) {
+            return;
+        }
+
+        const con = getConnector();
+        const result = await con.callService('prismApi', 'getLeaders', { communityId });
+
+        const topLeaders = result.items.filter(leader => leader.inTop);
+
+        for (const leader of topLeaders) {
+            const userId = leader.userId;
+
+            if (userId === reporter) {
+                continue;
+            }
+
+            const eventType = 'report';
+            const id = makeId(actionId, eventType, userId);
+
+            await ManagementEventModel.create({
+                id,
+                eventType,
+                communityId,
+                userId,
+                initiatorUserId: reporter,
+                blockNum,
+                blockTime,
+                blockTimeCorrected,
+                data: {
+                    reporter,
+                    message_id,
+                    reason,
+                },
+            });
+
+            notifications.push({
+                id,
+                eventType,
+                userId,
+            });
         }
     }
 
@@ -769,6 +887,181 @@ class Prism {
             userId,
             blockCommunityId: communityId,
         });
+    }
+
+    async _processNewProposal(
+        { blockNum, blockTime, blockTimeCorrected, actionId, notifications },
+        { commun_code: communityId, proposer, proposal_name: proposalId, trx }
+    ) {
+        if (!communityId) {
+            return;
+        }
+
+        if (trx.actions.length !== 1) {
+            return;
+        }
+
+        const { account: contract, name: action } = trx.actions[0];
+
+        if (contract === 'c.gallery' && action === 'ban') {
+            const con = getConnector();
+            const result = await con.callService('prismApi', 'getLeaders', { communityId });
+
+            const leader = result.items.find(leader => leader.userId === proposer);
+
+            if (!leader) {
+                Logger.warn(`Proposal from unknown leader: (${proposer})`);
+                return;
+            }
+
+            await ProposalModel.create({
+                communityId,
+                proposer,
+                proposalId,
+                type: 'banPost',
+                blockTime,
+                expiration: trx.expiration,
+                isExecuted: false,
+                approves: [],
+            });
+
+            const topLeaders = result.items.filter(leader => leader.inTop);
+
+            for (const leader of topLeaders) {
+                const userId = leader.userId;
+
+                if (userId === proposer) {
+                    continue;
+                }
+
+                const eventType = 'proposalNew';
+                const id = makeId(actionId, eventType, userId);
+
+                await ManagementEventModel.create({
+                    id,
+                    eventType,
+                    communityId,
+                    userId,
+                    initiatorUserId: proposer,
+                    blockNum,
+                    blockTime,
+                    blockTimeCorrected,
+                    data: {
+                        proposalId,
+                        type: 'banPost',
+                        proposer,
+                    },
+                });
+
+                notifications.push({
+                    id,
+                    eventType,
+                    userId,
+                });
+            }
+        }
+    }
+
+    async _processApproveProposal(
+        { blockNum, blockTime, blockTimeCorrected, actionId, notifications },
+        { proposer, proposal_name: proposalId, approver }
+    ) {
+        const proposal = await ProposalModel.findOne({ proposer, proposalId });
+
+        if (!proposal) {
+            return;
+        }
+
+        const con = getConnector();
+        const result = await con.callService('prismApi', 'getLeaders', {
+            communityId: proposal.communityId,
+        });
+
+        const topLeaders = result.items.filter(leader => leader.inTop);
+
+        for (const leader of topLeaders) {
+            const userId = leader.userId;
+
+            if (userId === approver) {
+                continue;
+            }
+
+            const eventType = 'proposalApprove';
+            const id = makeId(actionId, eventType, userId);
+
+            await ManagementEventModel.create({
+                id,
+                eventType,
+                communityId: proposal.communityId,
+                userId,
+                initiatorUserId: proposer,
+                blockNum,
+                blockTime,
+                blockTimeCorrected,
+                data: {
+                    proposalId,
+                    type: proposal.type,
+                    approver,
+                },
+            });
+
+            notifications.push({
+                id,
+                eventType,
+                userId,
+            });
+        }
+    }
+
+    async _processExecProposal(
+        { blockNum, blockTime, blockTimeCorrected, actionId, notifications },
+        { proposer, proposal_name: proposalId, executer }
+    ) {
+        const proposal = await ProposalModel.findOne({ proposer, proposalId });
+
+        if (!proposal) {
+            return;
+        }
+
+        const con = getConnector();
+        const result = await con.callService('prismApi', 'getLeaders', {
+            communityId: proposal.communityId,
+        });
+
+        const topLeaders = result.items.filter(leader => leader.inTop);
+
+        for (const leader of topLeaders) {
+            const userId = leader.userId;
+
+            if (userId === executer) {
+                continue;
+            }
+
+            const eventType = 'proposalExecute';
+            const id = makeId(actionId, eventType, userId);
+
+            await ManagementEventModel.create({
+                id,
+                eventType,
+                communityId: proposal.communityId,
+                userId,
+                initiatorUserId: proposer,
+                blockNum,
+                blockTime,
+                blockTimeCorrected,
+                data: {
+                    proposalId,
+                    type: proposal.type,
+                    executer,
+                },
+            });
+
+            notifications.push({
+                id,
+                eventType,
+                userId,
+            });
+        }
     }
 
     async _updateMeta({ blockNum }, { account, meta }) {

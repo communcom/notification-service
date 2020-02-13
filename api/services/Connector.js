@@ -38,7 +38,34 @@ class Connector extends BasicConnector {
                                         'upvote',
                                         'reward',
                                         'transfer',
+                                        'voteLeader',
+                                        'userBlock',
+                                        'banPost',
                                     ],
+                                },
+                            },
+                        },
+                    },
+                },
+                getManagementNotifications: {
+                    handler: this._api.getManagementNotifications,
+                    scope: this._api,
+                    requireAuth: true,
+                    validation: {
+                        properties: {
+                            beforeThan: {
+                                type: ['string', 'number', 'null'],
+                                default: null,
+                            },
+                            limit: {
+                                type: 'number',
+                                default: 20,
+                            },
+                            filter: {
+                                type: 'array',
+                                items: {
+                                    type: 'string',
+                                    enum: ['all'],
                                 },
                             },
                         },
