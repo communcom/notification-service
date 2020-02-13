@@ -15,7 +15,7 @@
   "license": "GPL-3.0",
   "dependencies": {
     "amqplib": "^0.5.5",
-    "cyberway-core-service": "^3.55.7",
+    "cyberway-core-service": "^3.56.0",
     "firebase-admin": "^8.9.0",
     "lodash": "^4.17.15"
   },
