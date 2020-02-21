@@ -206,7 +206,7 @@ class Prism {
             return;
         }
 
-        const eventType = type === VOTE_LEADER_TYPE.VOTE ? 'voteleader' : 'unvoteleader';
+        const eventType = type === VOTE_LEADER_TYPE.VOTE ? 'voteLeader' : 'unvoteLeader';
         const id = makeId(actionId, eventType, userId);
 
         await EventModel.create({

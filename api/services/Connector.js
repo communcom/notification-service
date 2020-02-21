@@ -38,6 +38,7 @@ class Connector extends BasicConnector {
                                         'upvote',
                                         'reward',
                                         'transfer',
+                                        'voteLeader',
                                     ],
                                 },
                             },
