@@ -5,3 +5,4 @@ db
 .npmrc
 .vscode
 auth-firebase-adminsdk.json
+docker-compose.yml
