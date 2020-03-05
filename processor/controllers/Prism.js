@@ -339,7 +339,7 @@ class Prism {
             { lean: true }
         );
 
-        if (!community) {
+        if (!community || community.name === name) {
             return;
         }
 
@@ -349,7 +349,7 @@ class Prism {
             },
             {
                 $set: {
-                    name: normalizeCommunityName(name),
+                    name,
                 },
                 $addToSet: {
                     revertLog: {
