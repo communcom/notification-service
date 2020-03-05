@@ -116,6 +116,9 @@ class Prism {
                     case 'create':
                         await this._processNewCommunity(actionInfo, args);
                         break;
+                    case 'setsysparams':
+                        await this._processCommunityUpdate(actionInfo, args);
+                        break;
                     case 'setinfo':
                         await this._processCommunityInfo(actionInfo, args);
                         break;
@@ -313,13 +316,51 @@ class Prism {
         });
     }
 
-    async _processNewCommunity({ blockNum }, { community_name: name, commun_code: communityId }) {
+    async _processNewCommunity({ blockNum }, { commun_code: communityId, community_name: name }) {
         await CommunityModel.create({
             communityId,
             name: normalizeCommunityName(name),
             alias: extractAlias(name),
             blockNum,
         });
+    }
+
+    async _processCommunityUpdate(
+        { blockNum },
+        { commun_code: communityId, community_name: name }
+    ) {
+        if (!name) {
+            return;
+        }
+
+        const community = CommunityModel.findOne(
+            { communityId: communityId },
+            { _id: true, name: true },
+            { lean: true }
+        );
+
+        if (!community) {
+            return;
+        }
+
+        await CommunityModel.updateOne(
+            {
+                _id: community._id,
+            },
+            {
+                $set: {
+                    name: normalizeCommunityName(name),
+                },
+                $addToSet: {
+                    revertLog: {
+                        blockNum,
+                        data: {
+                            name: community.name,
+                        },
+                    },
+                },
+            }
+        );
     }
 
     async _processCommunityInfo(
