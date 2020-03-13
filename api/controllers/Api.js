@@ -1,3 +1,6 @@
+const core = require('cyberway-core-service');
+const { Logger } = core.utils;
+
 const EventModel = require('../../common/models/Event');
 const UserModel = require('../../common/models/User');
 const UserBlockModel = require('../../common/models/UserBlock');
