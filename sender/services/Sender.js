@@ -30,7 +30,19 @@ class Sender extends Service {
         await super.start();
 
         this._mq = await mq.connect(env.GLS_MQ_CONNECT);
+
+        this._mq.on('error', err => {
+            Logger.error('Critical Error: Message queue connection error:', err);
+            process.exit(1);
+        });
+
         this._channel = await this._mq.createChannel();
+
+        this._channel.on('close', () => {
+            Logger.error('Critical Error: Message queue channel closed');
+            process.exit(1);
+        });
+
         await this._channel.assertQueue(QUEUE_NAME);
 
         this._channel.consume(QUEUE_NAME, async msg => {
