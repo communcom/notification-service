@@ -32,7 +32,7 @@ class Connector extends BasicConnector {
                                 type: 'array',
                                 items: {
                                     type: 'string',
-                                    enum: ['all', ...TYPES],
+                                    enum: ['all', ...Object.values(TYPES)],
                                 },
                             },
                         },
