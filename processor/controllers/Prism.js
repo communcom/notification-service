@@ -2,6 +2,8 @@ const crypto = require('crypto');
 const core = require('cyberway-core-service');
 const { Logger } = core.utils;
 
+const env = require('../../common/data/env');
+const { TYPES } = require('../../common/data/eventTypes');
 const EventModel = require('../../common/models/Event');
 const UserModel = require('../../common/models/User');
 const CommunityModel = require('../../common/models/Community');
@@ -206,7 +208,7 @@ class Prism {
             return;
         }
 
-        const eventType = type === VOTE_LEADER_TYPE.VOTE ? 'voteLeader' : 'unvoteLeader';
+        const eventType = type === VOTE_LEADER_TYPE.VOTE ? TYPES.VOTE_LEADER : TYPES.UNVOTE_LEADER;
         const id = makeId(actionId, eventType, userId);
 
         await EventModel.create({
@@ -240,12 +242,7 @@ class Prism {
 
         const { blockNum, blockTime, blockTimeCorrected, actionId, notifications } = actionInfo;
 
-        const rewardMatch = memo.match(/^reward for ([0-9]+)$/);
-        if (rewardMatch) {
-            const [_, tracery] = rewardMatch;
-
-            const userId = to;
-            const eventType = 'reward';
+        async function addEvent({ eventType, userId = to, initiatorUserId = from, data = null }) {
             const id = makeId(actionId, eventType, userId);
 
             await EventModel.create({
@@ -253,12 +250,13 @@ class Prism {
                 eventType,
                 communityId: symbol,
                 userId,
+                initiatorUserId,
                 blockNum,
                 blockTime,
                 blockTimeCorrected,
                 data: {
                     amount,
-                    tracery,
+                    pointType,
                 },
             });
 
@@ -267,7 +265,47 @@ class Prism {
                 eventType,
                 userId,
             });
+        }
 
+        if (from === env.GLS_BOUNTY_ACCOUNT && memo) {
+            const referralRegistrationMatch = memo.match(
+                /^referral registration bonus from: [\w\d.-]+ \(([\w0-5]+)\)$/
+            );
+
+            if (referralRegistrationMatch) {
+                await addEvent({
+                    eventType: TYPES.REFERRAL_REGISTRATION_BONUS,
+                    initiatorUserId: referralRegistrationMatch[1],
+                });
+                return;
+            }
+
+            const referralPurchaseMatch = memo.match(
+                /^referral purchase bonus \((\d+)%\) from: [\w\d.-]+ \(([\w0-5]+)\)$/
+            );
+
+            if (referralPurchaseMatch) {
+                await addEvent({
+                    eventType: TYPES.REFERRAL_PURCHASE_BONUS,
+                    initiatorUserId: referralPurchaseMatch[2],
+                    data: {
+                        percent: Number(referralPurchaseMatch[1]),
+                    },
+                });
+                return;
+            }
+        }
+
+        const rewardMatch = memo.match(/^reward for ([0-9]+)$/);
+        if (rewardMatch) {
+            const [_, tracery] = rewardMatch;
+
+            await addEvent({
+                eventType: TYPES.REWARD,
+                data: {
+                    tracery,
+                },
+            });
             return;
         }
 
@@ -275,29 +313,8 @@ class Prism {
             return;
         }
 
-        const userId = to;
-        const eventType = 'transfer';
-        const id = makeId(actionId, eventType, userId);
-
-        await EventModel.create({
-            id,
-            eventType,
-            communityId: symbol,
-            userId,
-            initiatorUserId: from,
-            blockNum,
-            blockTime,
-            blockTimeCorrected,
-            data: {
-                amount,
-                pointType,
-            },
-        });
-
-        notifications.push({
-            id,
-            eventType,
-            userId,
+        await addEvent({
+            eventType: TYPES.TRANSFER,
         });
     }
 
@@ -566,12 +583,12 @@ class Prism {
         }
 
         const { blockNum, blockTime, blockTimeCorrected, actionId, notifications } = actionInfo;
-
-        const id = makeId(actionId, 'reply', userId);
+        const eventType = TYPES.REPLY;
+        const id = makeId(actionId, eventType, userId);
 
         await EventModel.create({
             id,
-            eventType: 'reply',
+            eventType,
             communityId,
             publicationId: info.id,
             userId,
@@ -584,7 +601,7 @@ class Prism {
 
         notifications.push({
             id,
-            eventType: 'reply',
+            eventType,
             userId,
         });
 
@@ -627,11 +644,12 @@ class Prism {
                 continue;
             }
 
-            const id = makeId(actionId, 'mention', mentionedUser.userId);
+            const eventType = TYPES.MENTION;
+            const id = makeId(actionId, eventType, mentionedUser.userId);
 
             await EventModel.create({
                 id,
-                eventType: 'mention',
+                eventType,
                 communityId,
                 publicationId: info.id,
                 userId: mentionedUser.userId,
@@ -644,7 +662,7 @@ class Prism {
 
             notifications.push({
                 id,
-                eventType: 'mention',
+                eventType,
                 userId: mentionedUser.userId,
             });
 
@@ -670,11 +688,12 @@ class Prism {
             return;
         }
 
-        const id = makeId(actionId, 'upvote', messageId.userId);
+        const eventType = TYPES.UPVOTE;
+        const id = makeId(actionId, eventType, messageId.userId);
 
         await EventModel.create({
             id,
-            eventType: 'upvote',
+            eventType,
             communityId,
             userId: messageId.userId,
             initiatorUserId: voter,
@@ -687,7 +706,7 @@ class Prism {
 
         notifications.push({
             id,
-            eventType: 'upvote',
+            eventType,
             userId: messageId.userId,
         });
     }
@@ -702,11 +721,12 @@ class Prism {
             return;
         }
 
-        const id = makeId(actionId, 'subscribe', pinning);
+        const eventType = TYPES.SUBSCRIBE;
+        const id = makeId(actionId, eventType, pinning);
 
         await EventModel.create({
             id,
-            eventType: 'subscribe',
+            eventType,
             userId: pinning,
             initiatorUserId: pinner,
             blockNum,
@@ -717,7 +737,7 @@ class Prism {
 
         notifications.push({
             id,
-            eventType: 'subscribe',
+            eventType,
             userId: pinning,
         });
     }

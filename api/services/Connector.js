@@ -1,5 +1,7 @@
 const core = require('cyberway-core-service');
 const { Connector: BasicConnector } = core.services;
+
+const { TYPES } = require('../../common/data/eventTypes');
 const Api = require('../controllers/Api');
 
 class Connector extends BasicConnector {
@@ -30,16 +32,7 @@ class Connector extends BasicConnector {
                                 type: 'array',
                                 items: {
                                     type: 'string',
-                                    enum: [
-                                        'all',
-                                        'mention',
-                                        'reply',
-                                        'subscribe',
-                                        'upvote',
-                                        'reward',
-                                        'transfer',
-                                        'voteLeader',
-                                    ],
+                                    enum: ['all', ...TYPES],
                                 },
                             },
                         },

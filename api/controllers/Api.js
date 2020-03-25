@@ -1,6 +1,7 @@
 const core = require('cyberway-core-service');
 const { Logger } = core.utils;
 
+const { TYPES, TRANSFER_LIKE_TYPES } = require('../../common/data/eventTypes');
 const EventModel = require('../../common/models/Event');
 const UserModel = require('../../common/models/User');
 const UserBlockModel = require('../../common/models/UserBlock');
@@ -189,7 +190,7 @@ class Api {
             }
 
             if (!event.initiator.userId) {
-                if (event.initiatorUserId && (eventType === 'transfer' || eventType === 'reward')) {
+                if (event.initiatorUserId && TRANSFER_LIKE_TYPES.includes(eventType)) {
                     event.initiator = {
                         userId: event.initiatorUserId,
                         username: null,
@@ -207,27 +208,29 @@ class Api {
             let data = null;
 
             switch (eventType) {
-                case 'subscribe':
+                case TYPES.SUBSCRIBE:
                     data = {
                         user: event.initiator,
                     };
                     break;
 
-                case 'mention':
-                case 'reply':
+                case TYPES.MENTION:
+                case TYPES.REPLY:
                     data = {
                         author: event.initiator,
                     };
                     break;
 
-                case 'upvote':
+                case TYPES.UPVOTE:
                     data = {
                         voter: event.initiator,
                     };
                     break;
 
-                case 'transfer':
-                case 'reward':
+                case TYPES.TRANSFER:
+                case TYPES.REWARD:
+                case TYPES.REFERRAL_REGISTRATION_BONUS:
+                case TYPES.REFERRAL_PURCHASE_BONUS:
                     data = {
                         from: event.initiator,
                     };
@@ -236,7 +239,11 @@ class Api {
                 default:
             }
 
-            if (eventType === 'mention' || eventType === 'upvote' || eventType === 'reply') {
+            if (
+                eventType === TYPES.MENTION ||
+                eventType === TYPES.UPVOTE ||
+                eventType === TYPES.REPLY
+            ) {
                 if (!event.entry) {
                     throw new Error('Entry not found');
                 }
@@ -257,7 +264,7 @@ class Api {
                 }
             }
 
-            if (eventType === 'transfer' || eventType === 'reward') {
+            if (TRANSFER_LIKE_TYPES.includes(eventType)) {
                 data = { ...data, ...event.data };
             }
 

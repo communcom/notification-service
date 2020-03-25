@@ -7,4 +7,5 @@ module.exports = {
     GLS_MQ_CONNECT: env.GLS_MQ_CONNECT || 'amqp://localhost',
     GLS_DISABLE_SENDING: Boolean(env.GLS_DISABLE_SENDING && env.GLS_DISABLE_SENDING !== 'false'),
     GLS_NATS_START: env.GLS_NATS_START || null,
+    GLS_BOUNTY_ACCOUNT: env.GLS_BOUNTY_ACCOUNT || 'c.bounty',
 };
