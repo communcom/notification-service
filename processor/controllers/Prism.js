@@ -416,7 +416,15 @@ class Prism {
             return;
         }
 
-        const info = extractPublicationInfo(entity);
+        let info = null;
+
+        try {
+            info = extractPublicationInfo(entity);
+        } catch (err) {
+            Logger.warn('Invalid publication content!', messageId, entity);
+            Logger.warn('Error:', err);
+            return;
+        }
 
         let parents = null;
         let replySentToUserId = null;
