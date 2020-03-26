@@ -24,6 +24,10 @@ module.exports = MongoDB.makeModel(
             type: String,
             default: null,
         },
+        referralUserId: {
+            type: String,
+            default: null,
+        },
         publicationId: {
             type: String,
             default: null,

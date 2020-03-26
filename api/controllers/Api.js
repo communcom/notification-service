@@ -119,6 +119,14 @@ class Api {
             },
             {
                 $lookup: {
+                    from: 'users',
+                    localField: 'referralUserId',
+                    foreignField: 'userId',
+                    as: 'referralUser',
+                },
+            },
+            {
+                $lookup: {
                     from: 'communities',
                     localField: 'communityId',
                     foreignField: 'communityId',
@@ -140,6 +148,7 @@ class Api {
                     eventType: true,
                     communityId: true,
                     initiatorUserId: true,
+                    referralUserId: true,
                     data: true,
                     timestamp: '$blockTimeCorrected',
                     isRead: true,
@@ -148,6 +157,18 @@ class Api {
                         $let: {
                             vars: {
                                 user: { $arrayElemAt: ['$initiator', 0] },
+                            },
+                            in: {
+                                userId: '$$user.userId',
+                                username: '$$user.username',
+                                avatarUrl: '$$user.avatarUrl',
+                            },
+                        },
+                    },
+                    referralUser: {
+                        $let: {
+                            vars: {
+                                user: { $arrayElemAt: ['$referralUser', 0] },
                             },
                             in: {
                                 userId: '$$user.userId',
@@ -205,6 +226,10 @@ class Api {
                 }
             }
 
+            if (event.referralUserId && !event.referralUser.userId) {
+                throw new Error('Referral user is not found');
+            }
+
             let data = null;
 
             switch (eventType) {
@@ -229,10 +254,16 @@ class Api {
 
                 case TYPES.TRANSFER:
                 case TYPES.REWARD:
+                    data = {
+                        from: event.initiator,
+                    };
+                    break;
+
                 case TYPES.REFERRAL_REGISTRATION_BONUS:
                 case TYPES.REFERRAL_PURCHASE_BONUS:
                     data = {
                         from: event.initiator,
+                        referral: event.referralUser,
                     };
                     break;
 

@@ -275,7 +275,7 @@ class Prism {
             if (referralRegistrationMatch) {
                 await addEvent({
                     eventType: TYPES.REFERRAL_REGISTRATION_BONUS,
-                    initiatorUserId: referralRegistrationMatch[1],
+                    referralUserId: referralRegistrationMatch[1],
                 });
                 return;
             }
@@ -287,7 +287,7 @@ class Prism {
             if (referralPurchaseMatch) {
                 await addEvent({
                     eventType: TYPES.REFERRAL_PURCHASE_BONUS,
-                    initiatorUserId: referralPurchaseMatch[2],
+                    referralUserId: referralPurchaseMatch[2],
                     data: {
                         percent: Number(referralPurchaseMatch[1]),
                     },
