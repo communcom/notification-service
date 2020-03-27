@@ -257,6 +257,7 @@ class Prism {
                 data: {
                     amount,
                     pointType,
+                    ...data,
                 },
             });
 
