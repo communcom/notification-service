@@ -5,6 +5,7 @@ const core = require('cyberway-core-service');
 const { Service } = core.services;
 const { Logger } = core.utils;
 
+const { TYPES } = require('../../common/data/eventTypes');
 const env = require('../data/env');
 const { getConnector } = require('../utils/processStore');
 const SubscriptionModel = require('../../common/models/Subscription');
@@ -232,7 +233,7 @@ class Sender extends Service {
         const entry = notification.comment || notification.post || null;
 
         switch (notification.eventType) {
-            case 'upvote': {
+            case TYPES.UPVOTE: {
                 let text = `${notification.voter.username} liked your ${notification.entityType}`;
 
                 if (entry.shortText) {
@@ -242,13 +243,13 @@ class Sender extends Service {
                 return text;
             }
 
-            case 'mention':
+            case TYPES.MENTION:
                 return `${notification.author.username} mentioned you in a ${notification.entityType}: “${entry.shortText}”`;
 
-            case 'reply':
+            case TYPES.REPLY:
                 return `${notification.author.username} left a comment: “${entry.shortText}”`;
 
-            case 'subscribe':
+            case TYPES.SUBSCRIBE:
                 return `${notification.user.username} is following you`;
 
             default:
