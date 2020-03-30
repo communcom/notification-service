@@ -242,7 +242,13 @@ class Prism {
 
         const { blockNum, blockTime, blockTimeCorrected, actionId, notifications } = actionInfo;
 
-        async function addEvent({ eventType, userId = to, initiatorUserId = from, data = null }) {
+        async function addEvent({
+            eventType,
+            userId = to,
+            initiatorUserId = from,
+            referralUserId,
+            data = null,
+        }) {
             const id = makeId(actionId, eventType, userId);
 
             await EventModel.create({
@@ -251,6 +257,7 @@ class Prism {
                 communityId: symbol,
                 userId,
                 initiatorUserId,
+                referralUserId,
                 blockNum,
                 blockTime,
                 blockTimeCorrected,
