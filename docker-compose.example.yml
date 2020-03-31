@@ -40,7 +40,8 @@ services:
     container_name: notification-sender-node
     restart: always
     depends_on:
-      - notification-mq
+      notification-mq:
+        condition: service_healthy
     build:
       context: .
       dockerfile: sender.Dockerfile

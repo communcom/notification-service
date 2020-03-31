@@ -18,6 +18,8 @@ Types of notifications:
 -   [mention](#notification-type-mention)
 -   [transfer](#notification-type-transfer)
 -   [reward](#notification-type-reward)
+-   [referralRegistrationBonus](#notification-type-referralregistrationbonus)
+-   [referralPurchaseBonus](#notification-type-referralpurchasebonus)
 -   list will grow in future...
 
 In examples of API and Events places where one of these notification will be placed replaced by string "NOTIFICATION_STRUCTURE".
@@ -186,6 +188,45 @@ In examples of API and Events places where one of these notification will be pla
     "amount": "191.706",
     "tracery": "1221643747888096466",
     "isNew": true
+}
+```
+
+### Notification type "referralRegistrationBonus"
+
+```json
+{
+    "id": "3dc4a428f9ba5d09ba8d8444a74d79cfcaeee7b2",
+    "eventType": "referralRegistrationBonus",
+    "timestamp": "2020-01-30T11:04:36.000Z",
+    "userId": "cmn2hkogmnym",
+    "from": {
+        "userId": "usr1hsdahaa",
+        "username": "test-account",
+        "avatarUrl": null
+    },
+    "amount": "96.7580",
+    "pointType": "token",
+    "isNew": false
+}
+```
+
+### Notification type "referralPurchaseBonus"
+
+```json
+{
+    "id": "3dc4a428f9ba5d09ba8d8444a74d79cfcaeee7b2",
+    "eventType": "referralPurchaseBonus",
+    "timestamp": "2020-01-30T11:04:36.000Z",
+    "userId": "cmn2hkogmnym",
+    "from": {
+        "userId": "usr1hsdahaa",
+        "username": "test-account",
+        "avatarUrl": null
+    },
+    "amount": "96.7580",
+    "pointType": "token",
+    "percent": 5,
+    "isNew": false
 }
 ```
 
