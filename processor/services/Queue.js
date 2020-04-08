@@ -2,6 +2,7 @@ const mq = require('amqplib');
 const { chunk } = require('lodash');
 const core = require('cyberway-core-service');
 const { Service } = core.services;
+const { Logger } = core.utils;
 
 const env = require('../../common/data/env');
 const { setSender } = require('../utils/globals');
