@@ -1,5 +1,7 @@
 const crypto = require('crypto');
 const core = require('cyberway-core-service');
+const { normalizeCommunityNames } = require('commun-utils').community;
+
 const { Logger } = core.utils;
 
 const env = require('../../common/data/env');
@@ -338,11 +340,15 @@ class Prism {
         });
     }
 
-    async _processNewCommunity({ blockNum }, { community_name: name, commun_code: communityId }) {
+    async _processNewCommunity(
+        { blockNum },
+        { community_name: communityName, commun_code: communityId }
+    ) {
+        const { name, alias } = normalizeCommunityNames({ name: communityName, communityId });
         await CommunityModel.create({
             communityId,
-            name: normalizeCommunityName(name),
-            alias: extractAlias(name),
+            name,
+            alias,
             blockNum,
         });
     }
