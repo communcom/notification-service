@@ -225,15 +225,24 @@ class Sender extends Service {
             notification: { body: this._extractBody(notification) },
         };
 
-        Logger.info('Try to send notification:', { androidMessage, otherDevicesMessage });
+        if (androidMessage) {
+            try {
+                Logger.info('Try to send android notification:', androidMessage);
+                const responseAndroid = await fcm.messaging().sendMulticast(androidMessage);
+                Logger.info('FCM android response:', responseAndroid);
+            } catch (err) {
+                Logger.warn('Error sending message android:', err);
+            }
+        }
 
-        try {
-            const responseAndroid = await fcm.messaging().sendMulticast(androidMessage);
-            const responseOthers = await fcm.messaging().sendMulticast(otherDevicesMessage);
-            Logger.info('FCM android response:', responseAndroid);
-            Logger.info('FCM others response:', responseOthers);
-        } catch (err) {
-            Logger.warn('Error sending message:', err);
+        if (otherDevicesMessage) {
+            try {
+                Logger.info('Try to send others notification:', otherDevicesMessage);
+                const responseOthers = await fcm.messaging().sendMulticast(otherDevicesMessage);
+                Logger.info('FCM others response:', responseOthers);
+            } catch (err) {
+                Logger.warn('Error sending message others:', err);
+            }
         }
     }
 
