@@ -136,7 +136,10 @@ class Sender extends Service {
                 userId,
             });
 
-            return tokens.map(({ fcmToken }) => fcmToken);
+            return tokens.map(({ fcmToken, deviceId }) => {
+                const clientType = deviceId.split(':')[0];
+                return { fcmToken, clientType };
+            });
         } catch (err) {
             Logger.error('settings.getUserFcmTokens failed:', err);
             return [];
@@ -209,23 +212,42 @@ class Sender extends Service {
     }
 
     async _sendPush(notification, tokens) {
-        const message = {
-            tokens,
-            data: {
-                notification: JSON.stringify(notification),
-            },
-            notification: {
-                body: this._extractBody(notification),
-            },
+        const data = { notification: JSON.stringify(notification) };
+
+        const androidTokens = tokens
+            .filter(({ clientType }) => clientType === 'android')
+            .map(({ fcmToken }) => fcmToken);
+
+        const otherTokens = tokens
+            .filter(({ clientType }) => clientType !== 'android')
+            .map(({ fcmToken }) => fcmToken);
+
+        const androidMessage = { tokens: androidTokens, data };
+
+        const otherDevicesMessage = {
+            otherTokens,
+            data,
+            notification: { body: this._extractBody(notification) },
         };
 
-        Logger.info('Try to send notification:', message);
+        if (androidTokens.length > 0) {
+            try {
+                Logger.info('Try to send android notification:', androidMessage);
+                const responseAndroid = await fcm.messaging().sendMulticast(androidMessage);
+                Logger.info('FCM android response:', responseAndroid);
+            } catch (err) {
+                Logger.warn('Error sending message android:', err);
+            }
+        }
 
-        try {
-            const response = await fcm.messaging().sendMulticast(message);
-            Logger.info('FCM response:', response);
-        } catch (err) {
-            Logger.warn('Error sending message:', err);
+        if (otherTokens.length > 0) {
+            try {
+                Logger.info('Try to send others notification:', otherDevicesMessage);
+                const responseOthers = await fcm.messaging().sendMulticast(otherDevicesMessage);
+                Logger.info('FCM others response:', responseOthers);
+            } catch (err) {
+                Logger.warn('Error sending message others:', err);
+            }
         }
     }
 
