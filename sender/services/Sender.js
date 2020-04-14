@@ -217,10 +217,15 @@ class Sender extends Service {
         const androidTokens = tokens
             .filter(({ clientType }) => clientType === 'android')
             .map(({ fcmToken }) => fcmToken);
+
+        const otherTokens = tokens
+            .filter(({ clientType }) => clientType !== 'android')
+            .map(({ fcmToken }) => fcmToken);
+
         const androidMessage = { tokens: androidTokens, data };
 
         const otherDevicesMessage = {
-            tokens,
+            otherTokens,
             data,
             notification: { body: this._extractBody(notification) },
         };
