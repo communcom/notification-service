@@ -225,7 +225,7 @@ class Sender extends Service {
         const androidMessage = { tokens: androidTokens, data };
 
         const otherDevicesMessage = {
-            otherTokens,
+            tokens: otherTokens,
             data,
             notification: { body: this._extractBody(notification) },
         };
