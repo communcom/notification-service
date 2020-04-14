@@ -225,7 +225,7 @@ class Sender extends Service {
             notification: { body: this._extractBody(notification) },
         };
 
-        Logger.info('Try to send notification:', message);
+        Logger.info('Try to send notification:', { androidMessage, otherDevicesMessage });
 
         try {
             const responseAndroid = await fcm.messaging().sendMulticast(androidMessage);
