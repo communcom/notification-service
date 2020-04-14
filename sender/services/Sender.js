@@ -136,7 +136,10 @@ class Sender extends Service {
                 userId,
             });
 
-            return tokens.map(({ fcmToken }) => fcmToken);
+            return tokens.map(({ fcmToken, deviceId }) => {
+                const clientType = deviceId.split(':')[0];
+                return { fcmToken, clientType };
+            });
         } catch (err) {
             Logger.error('settings.getUserFcmTokens failed:', err);
             return [];
@@ -209,21 +212,26 @@ class Sender extends Service {
     }
 
     async _sendPush(notification, tokens) {
-        const message = {
+        const data = { notification: JSON.stringify(notification) };
+
+        const androidTokens = tokens
+            .filter(({ clientType }) => clientType === 'android')
+            .map(({ fcmToken }) => fcmToken);
+        const androidMessage = { tokens: androidTokens, data };
+
+        const otherDevicesMessage = {
             tokens,
-            data: {
-                notification: JSON.stringify(notification),
-            },
-            notification: {
-                body: this._extractBody(notification),
-            },
+            data,
+            notification: { body: this._extractBody(notification) },
         };
 
         Logger.info('Try to send notification:', message);
 
         try {
-            const response = await fcm.messaging().sendMulticast(message);
-            Logger.info('FCM response:', response);
+            const responseAndroid = await fcm.messaging().sendMulticast(androidMessage);
+            const responseOthers = await fcm.messaging().sendMulticast(otherDevicesMessage);
+            Logger.info('FCM android response:', responseAndroid);
+            Logger.info('FCM others response:', responseOthers);
         } catch (err) {
             Logger.warn('Error sending message:', err);
         }
