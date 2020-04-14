@@ -230,7 +230,7 @@ class Sender extends Service {
             notification: { body: this._extractBody(notification) },
         };
 
-        if (androidMessage) {
+        if (androidTokens.length > 0) {
             try {
                 Logger.info('Try to send android notification:', androidMessage);
                 const responseAndroid = await fcm.messaging().sendMulticast(androidMessage);
@@ -240,7 +240,7 @@ class Sender extends Service {
             }
         }
 
-        if (otherDevicesMessage) {
+        if (otherTokens.length > 0) {
             try {
                 Logger.info('Try to send others notification:', otherDevicesMessage);
                 const responseOthers = await fcm.messaging().sendMulticast(otherDevicesMessage);
