@@ -329,6 +329,7 @@ class Prism {
         if (donationMatch) {
             const contentId = donationMatch.groups;
             await addEvent({ eventType: TYPES.DONATION, contentId });
+            return;
         }
 
         if (IGNORE_USER_ID.includes(from) || IGNORE_USER_ID.includes(to)) {
