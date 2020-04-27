@@ -72,7 +72,7 @@ class Prism {
                                 ...blockInfo,
                                 actionId: `${blockInfo.blockId}:${trx.id}:${i}`,
                                 // Используем корректированное время чтобы нотификации из одного блока имели разное время
-                                blockTimeCorrected: block.blockTime + actionNum,
+                                blockTimeCorrected: new Date(Number(block.blockTime) + actionNum),
                             },
                             action
                         );
