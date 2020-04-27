@@ -250,6 +250,7 @@ class Prism {
             initiatorUserId = from,
             referralUserId,
             data = null,
+            contentId = null,
         }) {
             const id = makeId(actionId, eventType, userId);
 
@@ -266,6 +267,7 @@ class Prism {
                 data: {
                     amount,
                     pointType,
+                    contentId,
                     ...data,
                 },
             });
@@ -307,6 +309,10 @@ class Prism {
         }
 
         const rewardMatch = memo.match(/^reward for ([0-9]+)$/);
+        const donationRegExp = new RegExp(
+            /donation for (?<communityId>[A-Z]+):(?<permlink>[0-9a-z-]+):(?<userId>[a-z0-9]+)/g
+        );
+
         if (rewardMatch) {
             const [_, tracery] = rewardMatch;
 
@@ -317,6 +323,12 @@ class Prism {
                 },
             });
             return;
+        }
+
+        const donationMatch = donationRegExp.exec(memo);
+        if (donationMatch) {
+            const contentId = donationMatch.groups;
+            await addEvent({ eventType: TYPES.DONATION, contentId });
         }
 
         if (IGNORE_USER_ID.includes(from) || IGNORE_USER_ID.includes(to)) {

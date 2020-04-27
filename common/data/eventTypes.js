@@ -9,6 +9,7 @@ const TYPES = {
     UNVOTE_LEADER: 'unvoteLeader',
     REFERRAL_REGISTRATION_BONUS: 'referralRegistrationBonus',
     REFERRAL_PURCHASE_BONUS: 'referralPurchaseBonus',
+    DONATION: 'donation',
 };
 
 const TRANSFER_LIKE_TYPES = [
@@ -16,6 +17,7 @@ const TRANSFER_LIKE_TYPES = [
     TYPES.REWARD,
     TYPES.REFERRAL_REGISTRATION_BONUS,
     TYPES.REFERRAL_PURCHASE_BONUS,
+    TYPES.DONATION,
 ];
 
 module.exports = {
