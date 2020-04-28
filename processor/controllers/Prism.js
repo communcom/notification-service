@@ -266,8 +266,6 @@ class Prism {
                 data: {
                     amount,
                     pointType,
-                    contentId,
-                    post,
                     ...data,
                 },
             });
