@@ -265,6 +265,7 @@ class Prism {
                 blockTimeCorrected,
                 data: {
                     amount,
+                    symbol,
                     pointType,
                     ...data,
                 },
