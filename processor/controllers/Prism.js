@@ -250,7 +250,6 @@ class Prism {
             initiatorUserId = from,
             referralUserId,
             data = null,
-            contentId = null,
         }) {
             const id = makeId(actionId, eventType, userId);
 
@@ -268,6 +267,7 @@ class Prism {
                     amount,
                     pointType,
                     contentId,
+                    post,
                     ...data,
                 },
             });
@@ -328,7 +328,9 @@ class Prism {
         const donationMatch = donationRegExp.exec(memo);
         if (donationMatch) {
             const contentId = donationMatch.groups;
-            await addEvent({ eventType: TYPES.DONATION, contentId });
+            const post = await this._callPrismSafe('getPost', contentId);
+
+            await addEvent({ eventType: TYPES.DONATION, data: { contentId, post } });
             return;
         }
 
