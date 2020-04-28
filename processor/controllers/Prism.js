@@ -327,9 +327,13 @@ class Prism {
         const donationMatch = donationRegExp.exec(memo);
         if (donationMatch) {
             const contentId = donationMatch.groups;
+            if (await this._checkUserBlock(to, { userId: from })) {
+                return;
+            }
             const post = await this._callPrismSafe('getPost', contentId);
+            const user = await this._checkUser(from);
 
-            await addEvent({ eventType: TYPES.DONATION, data: { contentId, post } });
+            await addEvent({ eventType: TYPES.DONATION, data: { contentId, post, user } });
             return;
         }
 
