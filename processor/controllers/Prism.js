@@ -309,7 +309,7 @@ class Prism {
 
         const rewardMatch = memo.match(/^reward for ([0-9]+)$/);
         const donationRegExp = new RegExp(
-            /donation for (?<communityId>[A-Z]+):(?<permlink>[0-9a-z-]+):(?<userId>[a-z0-9]+)/g
+            /donation for (?<communityId>[A-Z]+):(?<userId>[a-z0-9]+):(?<permlink>[0-9a-z-]+)/g
         );
 
         if (rewardMatch) {
