@@ -330,7 +330,8 @@ class Prism {
             if (await this._checkUserBlock(to, { userId: from })) {
                 return;
             }
-            const post = await this._callPrismSafe('getPost', contentId);
+            const post = await this._checkPublication(contentId);
+
             const user = await this._checkUser(from);
 
             await addEvent({ eventType: TYPES.DONATION, data: { contentId, post, user } });
