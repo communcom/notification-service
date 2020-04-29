@@ -249,6 +249,7 @@ class Prism {
             userId = to,
             initiatorUserId = from,
             referralUserId,
+            publicationId,
             data = null,
         }) {
             const id = makeId(actionId, eventType, userId);
@@ -263,6 +264,7 @@ class Prism {
                 blockNum,
                 blockTime,
                 blockTimeCorrected,
+                publicationId,
                 data: {
                     amount,
                     symbol,
@@ -330,11 +332,13 @@ class Prism {
             if (await this._checkUserBlock(to, { userId: from })) {
                 return;
             }
-            const post = await this._checkPublication(contentId);
+            await this._checkPublication(contentId);
+            await this._checkUser(from);
 
-            const user = await this._checkUser(from);
-
-            await addEvent({ eventType: TYPES.DONATION, data: { contentId, post, user } });
+            await addEvent({
+                eventType: TYPES.DONATION,
+                publicationId: formatContentId(contentId),
+            });
             return;
         }
 
