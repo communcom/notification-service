@@ -253,11 +253,12 @@ class Prism {
             data = null,
         }) {
             const id = makeId(actionId, eventType, userId);
+            const communityId = eventType === 'donation' ? data.contentId.communityId : symbol;
 
             await EventModel.create({
                 id,
                 eventType,
-                communityId: symbol,
+                communityId,
                 userId,
                 initiatorUserId,
                 referralUserId,
@@ -338,6 +339,9 @@ class Prism {
             await addEvent({
                 eventType: TYPES.DONATION,
                 publicationId: formatContentId(contentId),
+                data: {
+                    contentId,
+                },
             });
             return;
         }
