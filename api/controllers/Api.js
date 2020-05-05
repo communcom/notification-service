@@ -254,6 +254,7 @@ class Api {
 
                 case TYPES.TRANSFER:
                 case TYPES.REWARD:
+                case TYPES.DONATION:
                     data = {
                         from: event.initiator,
                     };
@@ -270,11 +271,7 @@ class Api {
                 default:
             }
 
-            if (
-                eventType === TYPES.MENTION ||
-                eventType === TYPES.UPVOTE ||
-                eventType === TYPES.REPLY
-            ) {
+            if ([TYPES.MENTION, TYPES.UPVOTE, TYPES.REPLY, TYPES.DONATION].includes(eventType)) {
                 if (!event.entry) {
                     throw new Error('Entry not found');
                 }

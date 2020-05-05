@@ -72,7 +72,7 @@ class Prism {
                                 ...blockInfo,
                                 actionId: `${blockInfo.blockId}:${trx.id}:${i}`,
                                 // Используем корректированное время чтобы нотификации из одного блока имели разное время
-                                blockTimeCorrected: block.blockTime + actionNum,
+                                blockTimeCorrected: new Date(Number(block.blockTime) + actionNum),
                             },
                             action
                         );
@@ -249,22 +249,26 @@ class Prism {
             userId = to,
             initiatorUserId = from,
             referralUserId,
+            publicationId,
             data = null,
         }) {
             const id = makeId(actionId, eventType, userId);
+            const communityId = eventType === 'donation' ? data.contentId.communityId : symbol;
 
             await EventModel.create({
                 id,
                 eventType,
-                communityId: symbol,
+                communityId,
                 userId,
                 initiatorUserId,
                 referralUserId,
                 blockNum,
                 blockTime,
                 blockTimeCorrected,
+                publicationId,
                 data: {
                     amount,
+                    symbol,
                     pointType,
                     ...data,
                 },
@@ -307,6 +311,10 @@ class Prism {
         }
 
         const rewardMatch = memo.match(/^reward for ([0-9]+)$/);
+        const donationRegExp = new RegExp(
+            /donation for (?<communityId>[A-Z]+):(?<userId>[a-z0-9]+):(?<permlink>[0-9a-z-]+)/g
+        );
+
         if (rewardMatch) {
             const [_, tracery] = rewardMatch;
 
@@ -314,6 +322,25 @@ class Prism {
                 eventType: TYPES.REWARD,
                 data: {
                     tracery,
+                },
+            });
+            return;
+        }
+
+        const donationMatch = donationRegExp.exec(memo);
+        if (donationMatch) {
+            const contentId = donationMatch.groups;
+            if (await this._checkUserBlock(to, { userId: from })) {
+                return;
+            }
+            await this._checkPublication(contentId);
+            await this._checkUser(from);
+
+            await addEvent({
+                eventType: TYPES.DONATION,
+                publicationId: formatContentId(contentId),
+                data: {
+                    contentId,
                 },
             });
             return;
