@@ -115,10 +115,11 @@ class Sender extends Service {
             }
         }
 
+        const pushDisabled = settings.pushDisabled || []
         if (
             tokens.length &&
-            !settings.pushDisabled.includes('all') &&
-            !settings.pushDisabled.includes(notification.eventType)
+            !pushDisabled.includes('all') &&
+            !pushDisabled.includes(notification.eventType)
         ) {
             try {
                 await this._sendPush(notification, tokens);
