@@ -10,6 +10,7 @@ const TYPES = {
     REFERRAL_REGISTRATION_BONUS: 'referralRegistrationBonus',
     REFERRAL_PURCHASE_BONUS: 'referralPurchaseBonus',
     DONATION: 'donation',
+    BAN_POST: 'banPost',
 };
 
 const TRANSFER_LIKE_TYPES = [

@@ -230,7 +230,7 @@ class Api {
                 throw new Error('Referral user is not found');
             }
 
-            let data = null;
+            let data = {};
 
             switch (eventType) {
                 case TYPES.SUBSCRIBE:
@@ -271,7 +271,11 @@ class Api {
                 default:
             }
 
-            if ([TYPES.MENTION, TYPES.UPVOTE, TYPES.REPLY, TYPES.DONATION].includes(eventType)) {
+            if (
+                [TYPES.MENTION, TYPES.UPVOTE, TYPES.REPLY, TYPES.DONATION, TYPES.BAN_POST].includes(
+                    eventType
+                )
+            ) {
                 if (!event.entry) {
                     throw new Error('Entry not found');
                 }
