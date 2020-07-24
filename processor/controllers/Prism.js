@@ -144,6 +144,9 @@ class Prism {
                     case 'upvote':
                         await this._processUpvote(actionInfo, args);
                         break;
+                    case 'ban':
+                        await this._processBanPost(actionInfo, args);
+                        break;
                     default:
                 }
                 break;
@@ -757,6 +760,41 @@ class Prism {
             id,
             eventType,
             userId: messageId.userId,
+        });
+    }
+
+    async _processBanPost(
+        { blockNum, blockTime, blockTimeCorrected, actionId, notifications },
+        { commun_code: communityId, message_id }
+    ) {
+        const { author: userId } = message_id;
+        const messageId = normalizeMessageId(message_id, communityId);
+
+        await Promise.all([
+            this._checkCommunity(communityId),
+            this._checkUser(messageId.userId),
+            this._checkPublication(messageId),
+        ]);
+
+        const eventType = TYPES.BAN_POST;
+        const id = makeId(actionId, eventType, userId);
+
+        await EventModel.create({
+            id,
+            eventType,
+            communityId,
+            userId,
+            publicationId: formatContentId(messageId),
+            blockNum,
+            blockTime,
+            blockTimeCorrected,
+            data: {},
+        });
+
+        notifications.push({
+            id,
+            eventType,
+            userId,
         });
     }
 
