@@ -325,8 +325,10 @@ class Api {
             );
 
             for (const item of items) {
-                item.community.alias = this._normalizeAlias(item.community.alias);
-
+                if (item.community) {
+                    item.community.alias = this._normalizeAlias(item.community.alias);
+                }
+                
                 const notificationsViewedAt = usersViewedAt.get(item.userId);
 
                 item.isNew = notificationsViewedAt ? item.timestamp > notificationsViewedAt : true;
