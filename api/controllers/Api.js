@@ -325,6 +325,8 @@ class Api {
             );
 
             for (const item of items) {
+                item.community.alias = this._normalizeAlias(item.community.alias);
+
                 const notificationsViewedAt = usersViewedAt.get(item.userId);
 
                 item.isNew = notificationsViewedAt ? item.timestamp > notificationsViewedAt : true;
@@ -401,6 +403,15 @@ class Api {
                 },
             }
         );
+    }
+
+    _normalizeAlias(alias) {
+        switch (alias) {
+            case 'feed':
+                return 'myfeed';
+            default:
+                return alias;
+        }
     }
 }
 
